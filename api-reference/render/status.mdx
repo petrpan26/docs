@@ -6,6 +6,10 @@ description: 'Check job status for batch rendering'
 
 Check job status. Returns immediately. Poll every 5 seconds until `complete` or `failed`.
 
+<Note>
+  This endpoint does **not** require authentication. You can poll job status without an API key.
+</Note>
+
 ## Path Parameters
 
 <ParamField path="job_id" type="string" required>
@@ -24,19 +28,35 @@ Check job status. Returns immediately. Poll every 5 seconds until `complete` or 
 
 <ResponseField name="progress" type="object">
   Rendering progress
-  
+
   <Expandable title="Progress object">
-    <ResponseField name="completed" type="integer">
+    <ResponseField name="completed_chunks" type="integer">
       Number of completed chunks
     </ResponseField>
-    <ResponseField name="total" type="integer">
+    <ResponseField name="total_chunks" type="integer">
       Total number of chunks
+    </ResponseField>
+    <ResponseField name="percent" type="number">
+      Completion percentage (0-100)
     </ResponseField>
   </Expandable>
 </ResponseField>
 
-<ResponseField name="video_url" type="string">
-  URL to download complete video (available when status is `complete`)
+<ResponseField name="cdn_url" type="string">
+  CDN URL to download complete video (available when status is `complete`)
+</ResponseField>
+
+<ResponseField name="chunks" type="array">
+  Array of individual chunks with their CDN URLs
+
+  <Expandable title="Chunk object">
+    <ResponseField name="chunk_id" type="integer">
+      Chunk identifier
+    </ResponseField>
+    <ResponseField name="cdn_url" type="string">
+      CDN URL for this chunk
+    </ResponseField>
+  </Expandable>
 </ResponseField>
 
 <ResponseField name="error" type="string">
@@ -46,34 +66,34 @@ Check job status. Returns immediately. Poll every 5 seconds until `complete` or 
 <RequestExample>
 
 ```bash cURL
-curl "https://api.viggle.ai/api/render/job_abc123xyz" \
-  -H "Authorization: Bearer YOUR_API_KEY"
+curl "https://api.viggle.ai/api/render/job_abc123xyz"
 ```
 
 ```python Python
 import requests
 import time
 
-API_KEY = "your-api-key"
 BASE = "https://api.viggle.ai"
-headers = {"Authorization": f"Bearer {API_KEY}"}
 
 job_id = "job_abc123xyz"
 
 while True:
-    status = requests.get(
-        f"{BASE}/api/render/{job_id}",
-        headers=headers
-    ).json()
-    
-    print(f"Status: {status['status']} ({status['progress']['completed']}/{status['progress']['total']})")
-    
+    status = requests.get(f"{BASE}/api/render/{job_id}").json()
+    progress = status.get("progress", {})
+    completed = progress.get("completed_chunks", 0)
+    total = progress.get("total_chunks", 0)
+    percent = progress.get("percent", 0)
+
+    print(f"Status: {status['status']} ({completed}/{total}, {percent:.0f}%)")
+
     if status["status"] == "complete":
-        print(f"Video ready: {status['video_url']}")
+        print(f"Video ready: {status['cdn_url']}")
+        for chunk in status.get("chunks", []):
+            print(f"  Chunk {chunk['chunk_id']}: {chunk['cdn_url']}")
         break
     elif status["status"] == "failed":
         raise Exception(status["error"])
-    
+
     time.sleep(5)
 ```
 
@@ -83,20 +103,25 @@ const jobId = "job_abc123xyz";
 async function waitForComplete() {
   while (true) {
     const response = await fetch(
-      `https://api.viggle.ai/api/render/${jobId}`,
-      { headers: { "Authorization": `Bearer ${API_KEY}` } }
+      `https://api.viggle.ai/api/render/${jobId}`
     );
     const status = await response.json();
-    
-    console.log(`Status: ${status.status} (${status.progress.completed}/${status.progress.total})`);
-    
+    const completed = status.progress?.completed_chunks ?? 0;
+    const total = status.progress?.total_chunks ?? 0;
+    const percent = status.progress?.percent ?? 0;
+
+    console.log(`Status: ${status.status} (${completed}/${total}, ${percent.toFixed(0)}%)`);
+
     if (status.status === "complete") {
-      console.log(`Video ready: ${status.video_url}`);
+      console.log(`Video ready: ${status.cdn_url}`);
+      for (const chunk of status.chunks || []) {
+        console.log(`  Chunk ${chunk.chunk_id}: ${chunk.cdn_url}`);
+      }
       return status;
     } else if (status.status === "failed") {
       throw new Error(status.error);
     }
-    
+
     await new Promise(r => setTimeout(r, 5000));
   }
 }
@@ -110,8 +135,17 @@ async function waitForComplete() {
 {
   "job_id": "job_abc123xyz",
   "status": "rendering",
-  "progress": { "completed": 3, "total": 5 },
-  "video_url": null,
+  "progress": {
+    "completed_chunks": 3,
+    "total_chunks": 5,
+    "percent": 60.0
+  },
+  "cdn_url": null,
+  "chunks": [
+    { "chunk_id": 0, "cdn_url": "https://cdn.viggle.ai/chunks/..." },
+    { "chunk_id": 1, "cdn_url": "https://cdn.viggle.ai/chunks/..." },
+    { "chunk_id": 2, "cdn_url": "https://cdn.viggle.ai/chunks/..." }
+  ],
   "error": null
 }
 ```

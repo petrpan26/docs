@@ -1,0 +1,51 @@
+---
+title: 'Cancel Job'
+api: 'DELETE /api/render/{job_id}'
+description: 'Cancel or delete a render job'
+---
+
+Cancel a running job or delete a completed one. Releases reserved GPU workers and refunds credits for incomplete jobs.
+
+## Path Parameters
+
+<ParamField path="job_id" type="string" required>
+  The render job ID
+</ParamField>
+
+## Response
+
+<ResponseField name="status" type="string">
+  Will be `deleted`
+</ResponseField>
+
+<ResponseField name="job_id" type="string">
+  The deleted job ID
+</ResponseField>
+
+<RequestExample>
+
+```bash cURL
+curl -X DELETE "https://api.viggle.ai/api/render/job_abc123xyz" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+```python Python
+response = requests.delete(
+    f"https://api.viggle.ai/api/render/{job_id}",
+    headers={"Authorization": f"Bearer {API_KEY}"}
+)
+print(response.json())
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200
+{
+  "status": "deleted",
+  "job_id": "job_abc123xyz"
+}
+```
+
+</ResponseExample>

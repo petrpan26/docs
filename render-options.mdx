@@ -3,51 +3,65 @@ title: 'Render Options'
 description: 'Configure video generation settings'
 ---
 
-Configure video generation with the `options` parameter when creating a render job. All options are optional with sensible defaults.
+Configure video generation by passing form fields when creating a render job via `POST /api/render` (multipart/form-data). All options are optional with sensible defaults.
 
 ## Available Options
 
 <ParamField body="model" type="string" default="V4">
   The rendering model to use.
-  
+
   | Value | Description |
   |-------|-------------|
   | `V4` | Default. Better quality, recommended for most use cases |
   | `V3` | Faster processing, slightly lower quality |
 </ParamField>
 
-<ParamField body="background" type="string" default="inpaint">
+<ParamField body="background_mode" type="string" default="inpaint">
   Background handling mode.
-  
+
   | Value | Description |
   |-------|-------------|
   | `inpaint` | AI fills the background intelligently (default) |
   | `original` | Keep the original video background |
-  | `solid` | Replace with solid color (use with `background_color`) |
+  | `solid` | Replace with solid color (use with `bg_color`) |
   | `transparent` | Transparent background (for compositing) |
 </ParamField>
 
-<ParamField body="background_color" type="array" default="[0, 255, 0]">
-  RGB array for solid background color. Only used when `background` is `solid`.
-  
-  ```json
-  "background_color": [0, 255, 0]  // Green screen
-  "background_color": [0, 0, 0]    // Black
-  "background_color": [255, 255, 255]  // White
+<ParamField body="bg_color" type="string" default="0,255,0">
+  RGB string for solid background color. Only used when `background_mode` is `solid`. Format: `"R,G,B"`.
+
+  ```
+  bg_color=0,255,0       # Green screen
+  bg_color=0,0,0         # Black
+  bg_color=255,255,255   # White
   ```
 </ParamField>
 
-<ParamField body="fps" type="integer | null" default="null">
-  Output frame rate. Set to `null` (default) to match the input video frame rate.
-  
+<ParamField body="output_fps" type="integer | null" default="null">
+  Output frame rate. Set to `null` or omit (default) to match the input video frame rate.
+
   Common values: `24`, `30`, `60`
+</ParamField>
+
+<ParamField body="resolution" type="string" default="original">
+  Output resolution. Use `original` to match the input, or specify a target like `720p` or `1080p`.
+
+  | Value | Description |
+  |-------|-------------|
+  | `original` | Match input video resolution (default) |
+  | `720p` | 1280x720 |
+  | `1080p` | 1920x1080 |
+</ParamField>
+
+<ParamField body="mask_dilation" type="integer" default="0">
+  Pixel dilation applied to the character mask. Higher values expand the mask boundary, which can help avoid edge artifacts. Range: `0` to `20`.
 </ParamField>
 
 <ParamField body="fast" type="boolean" default="false">
   Enable parallel processing for approximately 2x speed.
-  
+
   <Warning>
-    Fast mode requires available GPU capacity. If capacity is unavailable, you'll receive a `503` error. Either retry with `fast: false` or wait for capacity.
+    Fast mode requires available GPU capacity. If capacity is unavailable, you'll receive a `503` error. Either retry with `fast=false` or wait for capacity.
   </Warning>
 </ParamField>
 
@@ -55,53 +69,58 @@ Configure video generation with the `options` parameter when creating a render j
 
 ### Default Options
 
-```json
-{
-  "character_id": "char_xxx",
-  "scene_id": "scene_xxx"
-}
+```bash
+curl -X POST "https://api.viggle.ai/api/render" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -d "character_id=char_xxx" \
+  -d "scene_id=scene_xxx"
 ```
 
 Uses V4 model with inpaint background.
 
 ### High Quality with Green Screen
 
-```json
-{
-  "character_id": "char_xxx",
-  "scene_id": "scene_xxx",
-  "options": {
-    "model": "V4",
-    "background": "solid",
-    "background_color": [0, 255, 0]
-  }
-}
+```bash
+curl -X POST "https://api.viggle.ai/api/render" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -d "character_id=char_xxx" \
+  -d "scene_id=scene_xxx" \
+  -d "model=V4" \
+  -d "background_mode=solid" \
+  -d "bg_color=0,255,0"
 ```
 
 ### Fast Processing
 
-```json
-{
-  "character_id": "char_xxx",
-  "scene_id": "scene_xxx",
-  "options": {
-    "model": "V3",
-    "fast": true
-  }
-}
+```bash
+curl -X POST "https://api.viggle.ai/api/render" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -d "character_id=char_xxx" \
+  -d "scene_id=scene_xxx" \
+  -d "model=V3" \
+  -d "fast=true"
 ```
 
 ### Transparent for Compositing
 
-```json
-{
-  "character_id": "char_xxx",
-  "scene_id": "scene_xxx",
-  "options": {
-    "background": "transparent",
-    "fps": 30
-  }
-}
+```bash
+curl -X POST "https://api.viggle.ai/api/render" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -d "character_id=char_xxx" \
+  -d "scene_id=scene_xxx" \
+  -d "background_mode=transparent" \
+  -d "output_fps=30"
+```
+
+### Custom Resolution with Mask Dilation
+
+```bash
+curl -X POST "https://api.viggle.ai/api/render" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -d "character_id=char_xxx" \
+  -d "scene_id=scene_xxx" \
+  -d "resolution=1080p" \
+  -d "mask_dilation=5"
 ```
 
 ## Background Mode Comparison
@@ -120,16 +139,23 @@ Uses V4 model with inpaint background.
     - Use **V4** for final renders and high-quality output
     - Use **V3** for quick previews and testing
   </Accordion>
-  
+
   <Accordion title="Background selection">
     - Use **inpaint** when you want a complete, ready-to-share video
     - Use **original** when the scene context is important
     - Use **solid** or **transparent** when compositing in video editors
   </Accordion>
-  
+
+  <Accordion title="Mask dilation">
+    - Start with **0** (default) and increase if you see edge artifacts
+    - Values of **3-5** work well for most cases with artifacts
+    - Higher values (10+) may cause the mask to bleed into the background
+  </Accordion>
+
   <Accordion title="Performance optimization">
     - Enable **fast** mode for time-sensitive renders when capacity is available
     - Use **V3** model for faster processing when quality is less critical
-    - Consider lower **fps** for smaller file sizes
+    - Consider lower **output_fps** for smaller file sizes
+    - Use **720p** resolution for faster renders when full resolution isn't needed
   </Accordion>
 </AccordionGroup>

@@ -10,15 +10,15 @@ The Render API combines a character and scene to generate an animated video. Two
 <CardGroup cols={2}>
   <Card title="Live Render" icon="bolt" color="#c8ff00">
     Use the **Poll endpoint** with long-polling. Returns video chunks progressively as they're rendered.
-    
+
     **Best for:**
     - Real-time preview
     - Progressive playback
     - Streaming applications
   </Card>
   <Card title="Batch Render" icon="layer-group" color="#a855f7">
-    Use the **Status endpoint** to check progress. Download the complete video when status is `complete`.
-    
+    Use the **Status endpoint** (no auth required) to check progress. Download the complete video when status is `complete`.
+
     **Best for:**
     - Background processing
     - File downloads
@@ -50,41 +50,43 @@ graph LR
 ## Workflow Comparison
 
 <Tabs>
-  <Tab title="Live Render">
+  <Tab title="Live Render (Poll)">
     ```python
     # Long-poll for chunks as they render
     last_chunk = -1
     while True:
         resp = requests.get(
             f"{BASE}/api/render/{job_id}/poll",
-            params={"after": last_chunk, "timeout": 30}
+            headers=headers,
+            params={"last_chunk": last_chunk, "timeout": 30}
         ).json()
-        
+
         # Play new chunks immediately
-        for chunk in resp["chunks"]:
-            play_video_chunk(chunk["url"])
-            last_chunk = max(last_chunk, chunk["index"])
-        
+        for chunk in resp["new_chunks"]:
+            play_video_chunk(chunk["cdn_url"])
+            last_chunk = max(last_chunk, chunk["chunk_id"])
+
         if resp["status"] == "complete":
             break
     ```
   </Tab>
   <Tab title="Batch Render">
     ```python
-    # Poll status until complete
+    # Poll status until complete (no auth needed for status)
     while True:
         status = requests.get(
             f"{BASE}/api/render/{job_id}"
         ).json()
-        
+
         if status["status"] == "complete":
-            # Download full video
+            # Download full video (auth required)
             video = requests.get(
-                f"{BASE}/api/render/{job_id}/video"
+                f"{BASE}/api/render/{job_id}/download",
+                headers=headers
             )
             save_video(video.content)
             break
-        
+
         time.sleep(5)
     ```
   </Tab>
@@ -103,6 +105,12 @@ graph LR
     Live render with progressive chunks
   </Card>
   <Card title="Get Job Status" icon="chart-simple" href="/api-reference/render/status">
-    Check batch render progress
+    Check batch render progress (no auth)
+  </Card>
+  <Card title="Download Video" icon="download" href="/api-reference/render/download">
+    Download completed video
+  </Card>
+  <Card title="Cancel Job" icon="xmark" href="/api-reference/render/cancel">
+    Cancel or delete a render job
   </Card>
 </CardGroup>

@@ -44,25 +44,6 @@
       "pages": ["introduction", "authentication"]
     },
     {
-      "group": "Characters",
-      "pages": [
-        "api-reference/characters/create",
-        "api-reference/characters/list",
-        "api-reference/characters/get",
-        "api-reference/characters/delete"
-      ]
-    },
-    {
-      "group": "Scenes",
-      "pages": [
-        "api-reference/scenes/create",
-        "api-reference/scenes/import",
-        "api-reference/scenes/list",
-        "api-reference/scenes/get",
-        "api-reference/scenes/delete"
-      ]
-    },
-    {
       "group": "Render",
       "pages": [
         "api-reference/render/overview",
@@ -70,7 +51,8 @@
         "api-reference/render/multi-character",
         "api-reference/render/poll",
         "api-reference/render/status",
-        "api-reference/render/download"
+        "api-reference/render/download",
+        "api-reference/render/cancel"
       ]
     },
     {

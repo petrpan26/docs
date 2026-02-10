@@ -4,9 +4,15 @@ api: 'POST /api/render'
 description: 'Start a video render job'
 ---
 
-Start a video render job. Both character and scene must have status `ready`.
+Start a video render job using `multipart/form-data`. Both character and scene must have status `ready`.
+
+<Note>
+  This endpoint requires authentication. Include your API key in the `Authorization: Bearer` header.
+</Note>
 
 ## Request
+
+Parameters are sent as form fields (not JSON).
 
 <ParamField body="character_id" type="string" required>
   ID of a ready character.
@@ -16,26 +22,32 @@ Start a video render job. Both character and scene must have status `ready`.
   ID of a ready scene.
 </ParamField>
 
-<ParamField body="options" type="object">
-  Render options. See [Render Options](/render-options) for all available options.
-  
-  <Expandable title="Options">
-    <ParamField body="options.model" type="string" default="V4">
-      `V4` (better quality) or `V3` (faster)
-    </ParamField>
-    <ParamField body="options.background" type="string" default="inpaint">
-      `inpaint`, `original`, `solid`, or `transparent`
-    </ParamField>
-    <ParamField body="options.background_color" type="array">
-      RGB array for solid background, e.g., `[0, 255, 0]`
-    </ParamField>
-    <ParamField body="options.fps" type="integer">
-      Output frame rate (`null` matches input)
-    </ParamField>
-    <ParamField body="options.fast" type="boolean" default="false">
-      Enable parallel processing for ~2x speed
-    </ParamField>
-  </Expandable>
+<ParamField body="model" type="string" default="V4">
+  `V4` (better quality) or `V3` (faster). See [Render Options](/render-options).
+</ParamField>
+
+<ParamField body="background_mode" type="string" default="inpaint">
+  `inpaint`, `original`, `solid`, or `transparent`
+</ParamField>
+
+<ParamField body="bg_color" type="string">
+  RGB string for solid background, e.g., `"0,255,0"`. Only used when `background_mode` is `solid`.
+</ParamField>
+
+<ParamField body="output_fps" type="integer">
+  Output frame rate. Omit to match input video.
+</ParamField>
+
+<ParamField body="resolution" type="string" default="original">
+  Output resolution: `original`, `720p`, or `1080p`.
+</ParamField>
+
+<ParamField body="mask_dilation" type="integer" default="0">
+  Pixel dilation for character mask (0-20).
+</ParamField>
+
+<ParamField body="fast" type="boolean" default="false">
+  Enable parallel processing for ~2x speed.
 </ParamField>
 
 ## Response
@@ -53,15 +65,10 @@ Start a video render job. Both character and scene must have status `ready`.
 ```bash cURL
 curl -X POST "https://api.viggle.ai/api/render" \
   -H "Authorization: Bearer YOUR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "character_id": "char_550e8400e29b41d4",
-    "scene_id": "scene_660e8400e29b41d4",
-    "options": {
-      "model": "V4",
-      "background": "inpaint"
-    }
-  }'
+  -d "character_id=char_550e8400e29b41d4" \
+  -d "scene_id=scene_660e8400e29b41d4" \
+  -d "model=V4" \
+  -d "background_mode=inpaint"
 ```
 
 ```python Python
@@ -70,10 +77,11 @@ import requests
 response = requests.post(
     "https://api.viggle.ai/api/render",
     headers={"Authorization": "Bearer YOUR_API_KEY"},
-    json={
+    data={
         "character_id": "char_550e8400e29b41d4",
         "scene_id": "scene_660e8400e29b41d4",
-        "options": {"model": "V4", "background": "inpaint"}
+        "model": "V4",
+        "background_mode": "inpaint"
     }
 )
 job = response.json()
@@ -81,17 +89,16 @@ print(f"Job ID: {job['job_id']}")
 ```
 
 ```javascript JavaScript
+const form = new URLSearchParams();
+form.append("character_id", "char_550e8400e29b41d4");
+form.append("scene_id", "scene_660e8400e29b41d4");
+form.append("model", "V4");
+form.append("background_mode", "inpaint");
+
 const response = await fetch("https://api.viggle.ai/api/render", {
   method: "POST",
-  headers: {
-    "Authorization": `Bearer ${API_KEY}`,
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify({
-    character_id: "char_550e8400e29b41d4",
-    scene_id: "scene_660e8400e29b41d4",
-    options: { model: "V4", background: "inpaint" }
-  })
+  headers: { "Authorization": `Bearer ${API_KEY}` },
+  body: form
 });
 const job = await response.json();
 console.log(`Job ID: ${job.job_id}`);
@@ -115,4 +122,5 @@ console.log(`Job ID: ${job.job_id}`);
 After creating a render job, you can either:
 
 - **Live Render**: Use [Poll for Chunks](/api-reference/render/poll) to receive video chunks progressively
-- **Batch Render**: Use [Get Job Status](/api-reference/render/status) to check progress, then [Download Video](/api-reference/render/download) when complete
+- **Batch Render**: Use [Get Job Status](/api-reference/render/status) (no auth required) to check progress, then [Download Video](/api-reference/render/download) when complete
+- **Cancel**: Use [Cancel Job](/api-reference/render/cancel) to stop a running job

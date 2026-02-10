@@ -5,7 +5,9 @@ description: "Learn how to authenticate with the Viggle API"
 
 ## API Keys
 
-All API requests require an API key passed in the Authorization header. API keys can be created in your [Viggle Dashboard](https://viggle.ai/dashboard).
+All API requests require an API key passed in the Authorization header. The only exceptions are health check endpoints (`/health`, `/healthz`) and the job status endpoint (`GET /api/render/{job_id}`).
+
+API keys can be created in your [Viggle Dashboard](https://viggle.ai/dashboard).
 
 ## Authentication Header
 
@@ -15,32 +17,48 @@ Include your API key in every request using the `Authorization` header with a Be
 Authorization: Bearer YOUR_API_KEY
 ```
 
+## Authenticated Endpoints
+
+| Endpoint | Auth Required |
+|----------|---------------|
+| `POST /api/render` | Yes |
+| `GET /api/render/{job_id}` | No |
+| `GET /api/render/{job_id}/poll` | Yes |
+| `GET /api/render/{job_id}/chunks/{chunk_id}.mp4` | Yes |
+| `GET /api/render/{job_id}/download` | Yes |
+| `DELETE /api/render/{job_id}` | Yes |
+| `GET /health`, `/healthz` | No |
+
 ## Example Request
 
 <CodeGroup>
 
 ```bash cURL
-curl -X GET "https://api.viggle.ai/api/characters" \
-  -H "Authorization: Bearer YOUR_API_KEY"
+curl -X POST "https://api.viggle.ai/api/render" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -d "character_id=char_xxx&scene_id=scene_xxx"
 ```
-
 
 ```python Python
 import requests
 
-response = requests.get(
-    "https://api.viggle.ai/api/characters",
-    headers={"Authorization": "Bearer YOUR_API_KEY"}
+response = requests.post(
+    "https://api.viggle.ai/api/render",
+    headers={"Authorization": "Bearer YOUR_API_KEY"},
+    data={"character_id": "char_xxx", "scene_id": "scene_xxx"}
 )
 print(response.json())
 ```
 
-
 ```javascript JavaScript
-const response = await fetch("https://api.viggle.ai/api/characters", {
-  headers: {
-    "Authorization": `Bearer ${API_KEY}`
-  }
+const form = new URLSearchParams();
+form.append("character_id", "char_xxx");
+form.append("scene_id", "scene_xxx");
+
+const response = await fetch("https://api.viggle.ai/api/render", {
+  method: "POST",
+  headers: { "Authorization": `Bearer ${API_KEY}` },
+  body: form
 });
 const data = await response.json();
 ```
@@ -57,7 +75,7 @@ const data = await response.json();
 
 <AccordionGroup>
   <Accordion title="Use environment variables">
-    Store your API key in environment variables instead of hardcoding it in your source code.
+    Store your API key in environment variables instead of hardcoding it.
 
     ```bash
     export VIGGLE_API_KEY="your-api-key-here"
@@ -82,14 +100,12 @@ If authentication fails, you'll receive a `401 Unauthorized` response:
 
 ```json
 {
-  "error": "Invalid or missing API key"
+  "detail": "API key required. Use Authorization: Bearer sk-xxx"
 }
 ```
 
-Common authentication errors:
-
-| Error              | Cause                              | Solution                                                              |
-| ------------------ | ---------------------------------- | --------------------------------------------------------------------- |
-| `401 Unauthorized` | Missing or invalid API key         | Check that you're including the Authorization header with a valid key |
-| `401 Unauthorized` | Expired API key                    | Generate a new API key in your dashboard                              |
-| `403 Forbidden`    | API key lacks required permissions | Contact support if you need elevated permissions                      |
+| Error | Cause | Solution |
+|-------|-------|----------|
+| `401 Unauthorized` | Missing or invalid API key | Include `Authorization: Bearer sk-xxx` header |
+| `401 Unauthorized` | Expired API key | Generate a new API key in your dashboard |
+| `402 Payment Required` | Insufficient credits | Add more credits in your dashboard |
