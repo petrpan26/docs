@@ -1,0 +1,95 @@
+{
+  "$schema": "https://mintlify.com/schema.json",
+  "name": "Viggle API",
+  "logo": {
+    "dark": "/logo/viggle-logo-dark.png",
+    "light": "/logo/viggle-logo.png"
+  },
+  "favicon": "/logo/viggle-logo.png",
+  "colors": {
+    "primary": "#c8ff00",
+    "light": "#4a7000",
+    "dark": "#a3cc00",
+    "background": {
+      "dark": "#0e0e10",
+      "light": "#ffffff"
+    }
+  },
+  "topbarLinks": [
+    {
+      "name": "Dashboard",
+      "url": "https://viggle.ai/dashboard"
+    }
+  ],
+  "topbarCtaButton": {
+    "name": "Get API Key",
+    "url": "https://viggle.ai/api-keys"
+  },
+  "tabs": [
+    {
+      "name": "API Reference",
+      "url": "api-reference"
+    }
+  ],
+  "anchors": [
+    {
+      "name": "Community",
+      "icon": "discord",
+      "url": "https://discord.com/invite/viggle"
+    }
+  ],
+  "navigation": [
+    {
+      "group": "Get Started",
+      "pages": ["introduction", "authentication"]
+    },
+    {
+      "group": "Characters",
+      "pages": [
+        "api-reference/characters/create",
+        "api-reference/characters/list",
+        "api-reference/characters/get",
+        "api-reference/characters/delete"
+      ]
+    },
+    {
+      "group": "Scenes",
+      "pages": [
+        "api-reference/scenes/create",
+        "api-reference/scenes/import",
+        "api-reference/scenes/list",
+        "api-reference/scenes/get",
+        "api-reference/scenes/delete"
+      ]
+    },
+    {
+      "group": "Render",
+      "pages": [
+        "api-reference/render/overview",
+        "api-reference/render/create",
+        "api-reference/render/multi-character",
+        "api-reference/render/poll",
+        "api-reference/render/status",
+        "api-reference/render/download"
+      ]
+    },
+    {
+      "group": "Reference",
+      "pages": ["render-options", "errors"]
+    }
+  ],
+  "footerSocials": {
+    "twitter": "https://twitter.com/ViggleAI",
+    "discord": "https://discord.com/invite/viggle",
+    "instagram": "https://www.instagram.com/viggle_ai",
+    "youtube": "https://www.youtube.com/@ViggleAI",
+    "linkedin": "https://www.linkedin.com/company/viggle"
+  },
+  "api": {
+    "baseUrl": "https://api.viggle.ai",
+    "auth": {
+      "method": "bearer"
+    }
+  },
+  "openapi": "openapi.yaml"
+}

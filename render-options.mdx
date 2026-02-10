@@ -1,0 +1,135 @@
+---
+title: 'Render Options'
+description: 'Configure video generation settings'
+---
+
+Configure video generation with the `options` parameter when creating a render job. All options are optional with sensible defaults.
+
+## Available Options
+
+<ParamField body="model" type="string" default="V4">
+  The rendering model to use.
+  
+  | Value | Description |
+  |-------|-------------|
+  | `V4` | Default. Better quality, recommended for most use cases |
+  | `V3` | Faster processing, slightly lower quality |
+</ParamField>
+
+<ParamField body="background" type="string" default="inpaint">
+  Background handling mode.
+  
+  | Value | Description |
+  |-------|-------------|
+  | `inpaint` | AI fills the background intelligently (default) |
+  | `original` | Keep the original video background |
+  | `solid` | Replace with solid color (use with `background_color`) |
+  | `transparent` | Transparent background (for compositing) |
+</ParamField>
+
+<ParamField body="background_color" type="array" default="[0, 255, 0]">
+  RGB array for solid background color. Only used when `background` is `solid`.
+  
+  ```json
+  "background_color": [0, 255, 0]  // Green screen
+  "background_color": [0, 0, 0]    // Black
+  "background_color": [255, 255, 255]  // White
+  ```
+</ParamField>
+
+<ParamField body="fps" type="integer | null" default="null">
+  Output frame rate. Set to `null` (default) to match the input video frame rate.
+  
+  Common values: `24`, `30`, `60`
+</ParamField>
+
+<ParamField body="fast" type="boolean" default="false">
+  Enable parallel processing for approximately 2x speed.
+  
+  <Warning>
+    Fast mode requires available GPU capacity. If capacity is unavailable, you'll receive a `503` error. Either retry with `fast: false` or wait for capacity.
+  </Warning>
+</ParamField>
+
+## Example Usage
+
+### Default Options
+
+```json
+{
+  "character_id": "char_xxx",
+  "scene_id": "scene_xxx"
+}
+```
+
+Uses V4 model with inpaint background.
+
+### High Quality with Green Screen
+
+```json
+{
+  "character_id": "char_xxx",
+  "scene_id": "scene_xxx",
+  "options": {
+    "model": "V4",
+    "background": "solid",
+    "background_color": [0, 255, 0]
+  }
+}
+```
+
+### Fast Processing
+
+```json
+{
+  "character_id": "char_xxx",
+  "scene_id": "scene_xxx",
+  "options": {
+    "model": "V3",
+    "fast": true
+  }
+}
+```
+
+### Transparent for Compositing
+
+```json
+{
+  "character_id": "char_xxx",
+  "scene_id": "scene_xxx",
+  "options": {
+    "background": "transparent",
+    "fps": 30
+  }
+}
+```
+
+## Background Mode Comparison
+
+| Mode | Use Case | Output |
+|------|----------|--------|
+| `inpaint` | General use, social media | AI-generated background that matches the scene |
+| `original` | Keep scene context | Original video background preserved |
+| `solid` | Green screen, compositing | Solid color background for easy keying |
+| `transparent` | Professional compositing | Alpha channel for layering in video editors |
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Choosing a model">
+    - Use **V4** for final renders and high-quality output
+    - Use **V3** for quick previews and testing
+  </Accordion>
+  
+  <Accordion title="Background selection">
+    - Use **inpaint** when you want a complete, ready-to-share video
+    - Use **original** when the scene context is important
+    - Use **solid** or **transparent** when compositing in video editors
+  </Accordion>
+  
+  <Accordion title="Performance optimization">
+    - Enable **fast** mode for time-sensitive renders when capacity is available
+    - Use **V3** model for faster processing when quality is less critical
+    - Consider lower **fps** for smaller file sizes
+  </Accordion>
+</AccordionGroup>

@@ -1,0 +1,119 @@
+---
+title: 'Get Job Status (Batch Render)'
+api: 'GET /api/render/{job_id}'
+description: 'Check job status for batch rendering'
+---
+
+Check job status. Returns immediately. Poll every 5 seconds until `complete` or `failed`.
+
+## Path Parameters
+
+<ParamField path="job_id" type="string" required>
+  The render job ID
+</ParamField>
+
+## Response
+
+<ResponseField name="job_id" type="string">
+  The job identifier
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Current status: `queued`, `processing`, `rendering`, `complete`, or `failed`
+</ResponseField>
+
+<ResponseField name="progress" type="object">
+  Rendering progress
+  
+  <Expandable title="Progress object">
+    <ResponseField name="completed" type="integer">
+      Number of completed chunks
+    </ResponseField>
+    <ResponseField name="total" type="integer">
+      Total number of chunks
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="video_url" type="string">
+  URL to download complete video (available when status is `complete`)
+</ResponseField>
+
+<ResponseField name="error" type="string">
+  Error message (when status is `failed`)
+</ResponseField>
+
+<RequestExample>
+
+```bash cURL
+curl "https://api.viggle.ai/api/render/job_abc123xyz" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+```python Python
+import requests
+import time
+
+API_KEY = "your-api-key"
+BASE = "https://api.viggle.ai"
+headers = {"Authorization": f"Bearer {API_KEY}"}
+
+job_id = "job_abc123xyz"
+
+while True:
+    status = requests.get(
+        f"{BASE}/api/render/{job_id}",
+        headers=headers
+    ).json()
+    
+    print(f"Status: {status['status']} ({status['progress']['completed']}/{status['progress']['total']})")
+    
+    if status["status"] == "complete":
+        print(f"Video ready: {status['video_url']}")
+        break
+    elif status["status"] == "failed":
+        raise Exception(status["error"])
+    
+    time.sleep(5)
+```
+
+```javascript JavaScript
+const jobId = "job_abc123xyz";
+
+async function waitForComplete() {
+  while (true) {
+    const response = await fetch(
+      `https://api.viggle.ai/api/render/${jobId}`,
+      { headers: { "Authorization": `Bearer ${API_KEY}` } }
+    );
+    const status = await response.json();
+    
+    console.log(`Status: ${status.status} (${status.progress.completed}/${status.progress.total})`);
+    
+    if (status.status === "complete") {
+      console.log(`Video ready: ${status.video_url}`);
+      return status;
+    } else if (status.status === "failed") {
+      throw new Error(status.error);
+    }
+    
+    await new Promise(r => setTimeout(r, 5000));
+  }
+}
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200
+{
+  "job_id": "job_abc123xyz",
+  "status": "rendering",
+  "progress": { "completed": 3, "total": 5 },
+  "video_url": null,
+  "error": null
+}
+```
+
+</ResponseExample>

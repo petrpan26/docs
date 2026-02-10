@@ -1,0 +1,167 @@
+---
+title: 'Download Video'
+api: 'GET /api/render/{job_id}/video'
+description: 'Download the completed video'
+---
+
+Download the completed video. Only available when job status is `complete`.
+
+## Path Parameters
+
+<ParamField path="job_id" type="string" required>
+  The render job ID
+</ParamField>
+
+## Response
+
+Returns binary MP4 data with `Content-Type: video/mp4`.
+
+<RequestExample>
+
+```bash cURL
+curl "https://api.viggle.ai/api/render/job_abc123xyz/video" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -o output.mp4
+```
+
+```python Python
+import requests
+
+API_KEY = "your-api-key"
+job_id = "job_abc123xyz"
+
+# Download video
+video = requests.get(
+    f"https://api.viggle.ai/api/render/{job_id}/video",
+    headers={"Authorization": f"Bearer {API_KEY}"}
+)
+
+# Save to file
+with open("output.mp4", "wb") as f:
+    f.write(video.content)
+
+print("Video saved to output.mp4")
+```
+
+```javascript JavaScript
+const jobId = "job_abc123xyz";
+
+const response = await fetch(
+  `https://api.viggle.ai/api/render/${jobId}/video`,
+  { headers: { "Authorization": `Bearer ${API_KEY}` } }
+);
+
+const blob = await response.blob();
+const url = URL.createObjectURL(blob);
+
+// Create download link
+const a = document.createElement('a');
+a.href = url;
+a.download = 'output.mp4';
+a.click();
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```
+HTTP/1.1 200 OK
+Content-Type: video/mp4
+Content-Length: 12345678
+
+<binary video data>
+```
+
+</ResponseExample>
+
+## Complete Batch Render Example
+
+<CodeGroup>
+
+```python Python
+import requests
+import time
+
+API_KEY = "your-api-key"
+BASE = "https://api.viggle.ai"
+headers = {"Authorization": f"Bearer {API_KEY}"}
+
+# 1. Create render job
+job = requests.post(f"{BASE}/api/render", headers=headers, json={
+    "character_id": "char_xxx",
+    "scene_id": "scene_xxx"
+}).json()
+
+print(f"Job started: {job['job_id']}")
+
+# 2. Poll until complete
+while True:
+    status = requests.get(
+        f"{BASE}/api/render/{job['job_id']}",
+        headers=headers
+    ).json()
+    
+    print(f"Status: {status['status']} ({status['progress']['completed']}/{status['progress']['total']})")
+    
+    if status["status"] == "complete":
+        break
+    elif status["status"] == "failed":
+        raise Exception(status["error"])
+    
+    time.sleep(5)
+
+# 3. Download video
+video = requests.get(f"{BASE}/api/render/{job['job_id']}/video", headers=headers)
+with open("output.mp4", "wb") as f:
+    f.write(video.content)
+
+print("Video saved!")
+```
+
+```javascript JavaScript
+const API_KEY = "your-api-key";
+const BASE = "https://api.viggle.ai";
+
+// 1. Create render job
+const job = await fetch(`${BASE}/api/render`, {
+  method: "POST",
+  headers: {
+    "Authorization": `Bearer ${API_KEY}`,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    character_id: "char_xxx",
+    scene_id: "scene_xxx"
+  })
+}).then(r => r.json());
+
+console.log(`Job started: ${job.job_id}`);
+
+// 2. Poll until complete
+while (true) {
+  const status = await fetch(
+    `${BASE}/api/render/${job.job_id}`,
+    { headers: { "Authorization": `Bearer ${API_KEY}` } }
+  ).then(r => r.json());
+  
+  console.log(`Status: ${status.status}`);
+  
+  if (status.status === "complete") break;
+  if (status.status === "failed") throw new Error(status.error);
+  
+  await new Promise(r => setTimeout(r, 5000));
+}
+
+// 3. Download video
+const video = await fetch(
+  `${BASE}/api/render/${job.job_id}/video`,
+  { headers: { "Authorization": `Bearer ${API_KEY}` } }
+).then(r => r.blob());
+
+// Save or display the video
+const url = URL.createObjectURL(video);
+console.log(`Video URL: ${url}`);
+```
+
+</CodeGroup>

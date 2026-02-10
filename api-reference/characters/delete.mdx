@@ -1,0 +1,63 @@
+---
+title: 'Delete Character'
+api: 'DELETE /api/characters/{id}'
+description: 'Permanently delete a character'
+---
+
+Permanently delete a character. This action cannot be undone.
+
+<Warning>
+  Deleting a character will not affect previously rendered videos, but you won't be able to use this character in new render jobs.
+</Warning>
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  The character ID to delete
+</ParamField>
+
+## Response
+
+<ResponseField name="success" type="boolean">
+  `true` if the character was successfully deleted
+</ResponseField>
+
+<RequestExample>
+
+```bash cURL
+curl -X DELETE "https://api.viggle.ai/api/characters/char_550e8400e29b41d4" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+```python Python
+import requests
+
+response = requests.delete(
+    "https://api.viggle.ai/api/characters/char_550e8400e29b41d4",
+    headers={"Authorization": "Bearer YOUR_API_KEY"}
+)
+print(response.json())
+```
+
+```javascript JavaScript
+const response = await fetch(
+  "https://api.viggle.ai/api/characters/char_550e8400e29b41d4",
+  {
+    method: "DELETE",
+    headers: { "Authorization": `Bearer ${API_KEY}` }
+  }
+);
+const data = await response.json();
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200
+{
+  "success": true
+}
+```
+
+</ResponseExample>

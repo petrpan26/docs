@@ -1,0 +1,213 @@
+---
+title: 'Multi-Character Render'
+api: 'POST /api/render'
+description: 'Render a multi-person template scene with different avatars'
+---
+
+Render a multi-person template scene with different avatars for each tracked person. Map each segment UUID to a different character.
+
+<Info>
+  **How Character Mapping Works**
+  
+  Each person in the scene has a segment UUID from the template. Use `character_mapping` to assign different avatars to each person.
+</Info>
+
+## Request
+
+<ParamField body="scene_id" type="string" required>
+  ID of a multi-person template scene with segments.
+</ParamField>
+
+<ParamField body="character_mapping" type="object" required>
+  Maps segment UUIDs to character IDs. Each segment gets a different avatar.
+  
+  ```json
+  {
+    "person_a1b2c3d4": "char_alice",
+    "person_e5f6g7h8": "char_bob"
+  }
+  ```
+</ParamField>
+
+<ParamField body="options" type="object">
+  Render options. See [Render Options](/render-options).
+</ParamField>
+
+## Response
+
+<ResponseField name="job_id" type="string">
+  Unique identifier for the render job
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Initial status will be `queued`
+</ResponseField>
+
+<RequestExample>
+
+```bash cURL
+# Map different avatars to each person in the scene
+curl -X POST "https://api.viggle.ai/api/render" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "scene_id": "scene_770e8400e29b41d4",
+    "character_mapping": {
+      "person_a1b2c3d4": "char_alice",
+      "person_e5f6g7h8": "char_bob",
+      "person_i9j0k1l2": "char_carol"
+    },
+    "options": {
+      "model": "V4",
+      "background": "inpaint"
+    }
+  }'
+```
+
+```python Python
+import requests
+
+# Get scene to find segment UUIDs
+scene = requests.get(
+    "https://api.viggle.ai/api/scenes/scene_770e8400e29b41d4",
+    headers={"Authorization": "Bearer YOUR_API_KEY"}
+).json()
+
+print(f"People in scene: {[s['uuid'] for s in scene['segments']]}")
+
+# Map each person to a different character avatar
+response = requests.post(
+    "https://api.viggle.ai/api/render",
+    headers={"Authorization": "Bearer YOUR_API_KEY"},
+    json={
+        "scene_id": scene["id"],
+        "character_mapping": {
+            scene["segments"][0]["uuid"]: "char_alice",
+            scene["segments"][1]["uuid"]: "char_bob",
+            scene["segments"][2]["uuid"]: "char_carol"
+        },
+        "options": {"model": "V4", "background": "inpaint"}
+    }
+)
+job = response.json()
+print(f"Multi-character job: {job['job_id']}")
+```
+
+```javascript JavaScript
+// Get scene to find segment UUIDs
+const scene = await fetch(
+  "https://api.viggle.ai/api/scenes/scene_770e8400e29b41d4",
+  { headers: { "Authorization": `Bearer ${API_KEY}` } }
+).then(r => r.json());
+
+console.log("People in scene:", scene.segments.map(s => s.uuid));
+
+// Map each person to a different character avatar
+const response = await fetch("https://api.viggle.ai/api/render", {
+  method: "POST",
+  headers: {
+    "Authorization": `Bearer ${API_KEY}`,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    scene_id: scene.id,
+    character_mapping: {
+      [scene.segments[0].uuid]: "char_alice",
+      [scene.segments[1].uuid]: "char_bob",
+      [scene.segments[2].uuid]: "char_carol"
+    },
+    options: { model: "V4", background: "inpaint" }
+  })
+});
+const job = await response.json();
+console.log(`Multi-character job: ${job.job_id}`);
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200
+{
+  "job_id": "job_multi_xyz789",
+  "status": "queued"
+}
+```
+
+</ResponseExample>
+
+## Mapping Options
+
+### Partial Mapping
+
+You don't need to map all segments. Unmapped people retain their original appearance:
+
+```json
+{
+  "scene_id": "scene_770e8400e29b41d4",
+  "character_mapping": {
+    "person_a1b2c3d4": "char_alice"
+    // person_e5f6g7h8 and person_i9j0k1l2 keep original appearance
+  }
+}
+```
+
+### Same Avatar for Multiple People
+
+Map multiple segments to the same character ID:
+
+```json
+{
+  "scene_id": "scene_770e8400e29b41d4",
+  "character_mapping": {
+    "person_a1b2c3d4": "char_alice",
+    "person_e5f6g7h8": "char_alice",  // Same as above
+    "person_i9j0k1l2": "char_bob"
+  }
+}
+```
+
+## Complete Workflow
+
+<Steps>
+  <Step title="Import a multi-person template">
+    ```python
+    import_resp = requests.post(
+        f"{BASE}/api/scenes/import",
+        json={"template_id": "template_uuid", "name": "Group Dance"}
+    ).json()
+    
+    scene_id = import_resp["id"]
+    print(f"People found: {[s['uuid'] for s in import_resp['segments']]}")
+    ```
+  </Step>
+  <Step title="Wait for scene preprocessing">
+    ```python
+    while True:
+        scene = requests.get(f"{BASE}/api/scenes/{scene_id}").json()
+        if scene["status"] == "ready":
+            break
+        time.sleep(5)
+    ```
+  </Step>
+  <Step title="Create character mapping">
+    ```python
+    character_mapping = {
+        scene["segments"][0]["uuid"]: "char_alice",
+        scene["segments"][1]["uuid"]: "char_bob"
+    }
+    ```
+  </Step>
+  <Step title="Start render job">
+    ```python
+    job = requests.post(
+        f"{BASE}/api/render",
+        json={
+            "scene_id": scene_id,
+            "character_mapping": character_mapping,
+            "options": {"model": "V4"}
+        }
+    ).json()
+    ```
+  </Step>
+</Steps>

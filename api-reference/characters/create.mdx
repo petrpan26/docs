@@ -1,0 +1,88 @@
+---
+title: 'Create Character'
+api: 'POST /api/characters/preprocess'
+description: 'Upload a reference image to create a reusable character'
+---
+
+Upload a reference image to create a reusable character. Processing runs in background. **Costs 1 credit.**
+
+## Request
+
+<ParamField body="name" type="string" required>
+  Display name for the character.
+</ParamField>
+
+<ParamField body="image" type="file" required>
+  Reference image (PNG, JPG). Best results with:
+  - Clear, front-facing subject
+  - Good lighting
+  - High resolution
+</ParamField>
+
+## Response
+
+<ResponseField name="id" type="string">
+  Unique identifier for the character (e.g., `char_550e8400e29b41d4`)
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Initial status will be `pending`. Poll [Get Character](/api-reference/characters/get) until `ready` or `failed`.
+</ResponseField>
+
+<ResponseField name="credits_reserved" type="integer">
+  Number of credits reserved for this operation (1 for character creation)
+</ResponseField>
+
+<RequestExample>
+
+```bash cURL
+curl -X POST "https://api.viggle.ai/api/characters/preprocess" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -F "name=My Character" \
+  -F "image=@character.png"
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    "https://api.viggle.ai/api/characters/preprocess",
+    headers={"Authorization": "Bearer YOUR_API_KEY"},
+    files={"image": open("character.png", "rb")},
+    data={"name": "My Character"}
+)
+print(response.json())
+```
+
+```javascript JavaScript
+const formData = new FormData();
+formData.append('name', 'My Character');
+formData.append('image', imageFile);
+
+const response = await fetch("https://api.viggle.ai/api/characters/preprocess", {
+  method: "POST",
+  headers: {
+    "Authorization": `Bearer ${API_KEY}`
+  },
+  body: formData
+});
+const data = await response.json();
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200
+{
+  "id": "char_550e8400e29b41d4",
+  "status": "pending",
+  "credits_reserved": 1
+}
+```
+
+</ResponseExample>
+
+## Next Steps
+
+After creating a character, poll [Get Character](/api-reference/characters/get) every 5 seconds until the status becomes `ready`. Then you can use it in [render jobs](/api-reference/render/create).

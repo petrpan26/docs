@@ -1,0 +1,161 @@
+---
+title: 'Errors'
+description: 'API error codes and handling'
+---
+
+All API endpoints return errors in a consistent JSON format.
+
+## Error Response Format
+
+```json
+{
+  "error": "Human-readable error message"
+}
+```
+
+## HTTP Status Codes
+
+<ResponseField name="400" type="Bad Request">
+  Invalid parameters or missing required fields.
+  
+  **Common causes:**
+  - Missing required fields in request body
+  - Invalid parameter types or values
+  - Malformed JSON
+  
+  **Solution:** Check your request against the API documentation.
+</ResponseField>
+
+<ResponseField name="401" type="Unauthorized">
+  Missing or invalid API key.
+  
+  **Common causes:**
+  - Missing `Authorization` header
+  - Invalid or expired API key
+  - Incorrect header format
+  
+  **Solution:** Ensure you're including `Authorization: Bearer YOUR_API_KEY` in your request headers.
+</ResponseField>
+
+<ResponseField name="402" type="Payment Required">
+  Insufficient credits for this operation.
+  
+  **Common causes:**
+  - Account has run out of credits
+  - Operation requires more credits than available
+  
+  **Solution:** Add more credits to your account in the [dashboard](https://viggle.ai/dashboard).
+</ResponseField>
+
+<ResponseField name="404" type="Not Found">
+  Character, scene, or job does not exist.
+  
+  **Common causes:**
+  - Invalid or deleted resource ID
+  - Resource belongs to a different account
+  
+  **Solution:** Verify the resource ID and ensure it exists in your account.
+</ResponseField>
+
+<ResponseField name="422" type="Unprocessable Entity">
+  Asset not ready for the requested operation.
+  
+  **Common causes:**
+  - Attempting to render with a character or scene that isn't `ready`
+  - Asset is still processing or has failed
+  
+  **Solution:** Poll the character/scene status until it's `ready` before creating render jobs.
+</ResponseField>
+
+<ResponseField name="429" type="Rate Limited">
+  Too many requests.
+  
+  **Common causes:**
+  - Exceeding API rate limits
+  - Too many concurrent requests
+  
+  **Solution:** Implement exponential backoff and retry logic.
+</ResponseField>
+
+<ResponseField name="503" type="Service Unavailable">
+  Insufficient GPU capacity for fast mode.
+  
+  **Common causes:**
+  - Requesting `fast: true` when GPU capacity is unavailable
+  - High system load
+  
+  **Solution:** Retry with `fast: false` or wait and retry later.
+</ResponseField>
+
+## Error Handling Best Practices
+
+<AccordionGroup>
+  <Accordion title="Implement retry logic">
+    For transient errors (429, 503), implement exponential backoff:
+    
+    ```python
+    import time
+    import requests
+    
+    def api_request_with_retry(url, max_retries=3):
+        for attempt in range(max_retries):
+            response = requests.get(url, headers=headers)
+            
+            if response.status_code == 429:
+                wait_time = 2 ** attempt  # 1, 2, 4 seconds
+                time.sleep(wait_time)
+                continue
+            
+            return response
+        
+        raise Exception("Max retries exceeded")
+    ```
+  </Accordion>
+  
+  <Accordion title="Handle processing failures">
+    Always check for failed status when polling:
+    
+    ```python
+    while True:
+        status = get_status(resource_id)
+        
+        if status["status"] == "ready":
+            break
+        elif status["status"] == "failed":
+            # Handle the error
+            print(f"Error: {status['error']}")
+            break
+        
+        time.sleep(5)
+    ```
+  </Accordion>
+  
+  <Accordion title="Validate before rendering">
+    Check that assets are ready before creating render jobs:
+    
+    ```python
+    character = get_character(character_id)
+    scene = get_scene(scene_id)
+    
+    if character["status"] != "ready":
+        raise Exception("Character not ready")
+    
+    if scene["status"] != "ready":
+        raise Exception("Scene not ready")
+    
+    # Now safe to create render job
+    create_render_job(character_id, scene_id)
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Common Error Scenarios
+
+| Scenario | Error Code | Solution |
+|----------|------------|----------|
+| API key not included | 401 | Add `Authorization: Bearer KEY` header |
+| Rendering with pending character | 422 | Wait for character status to be `ready` |
+| Out of credits | 402 | Purchase more credits |
+| Fast mode unavailable | 503 | Set `fast: false` or retry later |
+| Invalid character ID | 404 | Verify the ID exists in your account |
+| Rate limited | 429 | Implement backoff and retry |

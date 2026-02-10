@@ -1,0 +1,620 @@
+openapi: 3.0.3
+info:
+  title: Viggle API
+  description: Generate AI-powered character animation videos
+  version: '1.0.0'
+  contact:
+    name: Viggle Support
+    url: https://viggle.ai
+servers:
+  - url: https://api.viggle.ai
+    description: Production server
+
+security:
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: API key passed as Bearer token
+
+  schemas:
+    Character:
+      type: object
+      properties:
+        id:
+          type: string
+          example: char_550e8400e29b41d4
+        name:
+          type: string
+          example: My Character
+        status:
+          type: string
+          enum: [pending, processing, ready, failed]
+        thumbnail_url:
+          type: string
+          format: uri
+          example: https://assets.viggle.ai/thumbnails/...
+        error:
+          type: string
+          nullable: true
+        credits_used:
+          type: integer
+          example: 1
+        created_at:
+          type: string
+          format: date-time
+          example: '2024-01-15T10:30:00Z'
+
+    Scene:
+      type: object
+      properties:
+        id:
+          type: string
+          example: scene_660e8400e29b41d4
+        name:
+          type: string
+          example: Dance Sequence
+        status:
+          type: string
+          enum: [pending, processing, ready, failed]
+        duration_seconds:
+          type: number
+          example: 10.5
+        fps:
+          type: integer
+          example: 30
+        thumbnail_url:
+          type: string
+          format: uri
+        segments:
+          type: array
+          nullable: true
+          items:
+            type: object
+            properties:
+              uuid:
+                type: string
+                example: person_a1b2c3d4
+              type:
+                type: string
+                example: human
+        error:
+          type: string
+          nullable: true
+        credits_used:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    RenderJob:
+      type: object
+      properties:
+        job_id:
+          type: string
+          example: job_abc123xyz
+        status:
+          type: string
+          enum: [queued, processing, rendering, complete, failed]
+        progress:
+          type: object
+          properties:
+            completed:
+              type: integer
+            total:
+              type: integer
+        video_url:
+          type: string
+          format: uri
+          nullable: true
+        error:
+          type: string
+          nullable: true
+
+    RenderOptions:
+      type: object
+      properties:
+        model:
+          type: string
+          enum: [V3, V4]
+          default: V4
+          description: V4 (default, better quality) or V3 (faster)
+        background:
+          type: string
+          enum: [inpaint, original, solid, transparent]
+          default: inpaint
+          description: Background mode
+        background_color:
+          type: array
+          items:
+            type: integer
+          minItems: 3
+          maxItems: 3
+          example: [0, 255, 0]
+          description: RGB array for solid background
+        fps:
+          type: integer
+          nullable: true
+          description: Output frame rate (null matches input)
+        fast:
+          type: boolean
+          default: false
+          description: Enable parallel processing for ~2x speed
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: Human-readable error message
+
+paths:
+  /api/characters/preprocess:
+    post:
+      summary: Create Character
+      description: Upload a reference image to create a reusable character. Processing runs in background. Costs 1 credit.
+      operationId: createCharacter
+      tags:
+        - Characters
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - name
+                - image
+              properties:
+                name:
+                  type: string
+                  description: Display name for the character
+                image:
+                  type: string
+                  format: binary
+                  description: Reference image (PNG, JPG). Best with clear, front-facing subject.
+      responses:
+        '200':
+          description: Character creation started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: char_550e8400e29b41d4
+                  status:
+                    type: string
+                    example: pending
+                  credits_reserved:
+                    type: integer
+                    example: 1
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/characters:
+    get:
+      summary: List Characters
+      description: List all characters for your account.
+      operationId: listCharacters
+      tags:
+        - Characters
+      responses:
+        '200':
+          description: List of characters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  characters:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Character'
+                  total:
+                    type: integer
+                    example: 1
+
+  /api/characters/{id}:
+    get:
+      summary: Get Character
+      description: Get character details. Poll every 5 seconds until status is ready or failed.
+      operationId: getCharacter
+      tags:
+        - Characters
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: char_550e8400e29b41d4
+      responses:
+        '200':
+          description: Character details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Character'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      summary: Delete Character
+      description: Permanently delete a character.
+      operationId: deleteCharacter
+      tags:
+        - Characters
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Character deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+
+  /api/scenes/preprocess:
+    post:
+      summary: Create Scene
+      description: Upload a driving video to create a reusable scene. Costs 1 credit per second of video.
+      operationId: createScene
+      tags:
+        - Scenes
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - name
+                - video
+              properties:
+                name:
+                  type: string
+                  description: Display name for the scene
+                video:
+                  type: string
+                  format: binary
+                  description: Driving video (MP4, MOV, WebM). Contains the motion to transfer.
+      responses:
+        '200':
+          description: Scene creation started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: scene_660e8400e29b41d4
+                  status:
+                    type: string
+                    example: pending
+                  credits_reserved:
+                    type: integer
+                    example: 10
+
+  /api/scenes/import:
+    post:
+      summary: Import Multi-Person Template
+      description: Import a multi-person scene from a Viggle template. Multi-person templates contain pre-tracked segments for each person in the video.
+      operationId: importSceneTemplate
+      tags:
+        - Scenes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - template_id
+              properties:
+                template_id:
+                  type: string
+                  description: Viggle multi-person template UUID from your library
+                name:
+                  type: string
+                  description: Optional display name for the scene
+      responses:
+        '200':
+          description: Template imported
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: scene_770e8400e29b41d4
+                  status:
+                    type: string
+                    example: pending
+                  credits_reserved:
+                    type: integer
+                    example: 15
+                  segments:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        uuid:
+                          type: string
+                        type:
+                          type: string
+
+  /api/scenes:
+    get:
+      summary: List Scenes
+      description: List all scenes for your account.
+      operationId: listScenes
+      tags:
+        - Scenes
+      responses:
+        '200':
+          description: List of scenes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  scenes:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Scene'
+                  total:
+                    type: integer
+
+  /api/scenes/{id}:
+    get:
+      summary: Get Scene
+      description: Get scene details. Poll until status is ready or failed.
+      operationId: getScene
+      tags:
+        - Scenes
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Scene details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Scene'
+
+    delete:
+      summary: Delete Scene
+      description: Permanently delete a scene.
+      operationId: deleteScene
+      tags:
+        - Scenes
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Scene deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+
+  /api/render:
+    post:
+      summary: Create Render Job
+      description: Start a video render job. Both character and scene must have status ready.
+      operationId: createRenderJob
+      tags:
+        - Render
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - type: object
+                  title: Single Character Render
+                  required:
+                    - character_id
+                    - scene_id
+                  properties:
+                    character_id:
+                      type: string
+                      description: ID of a ready character
+                      example: char_550e8400e29b41d4
+                    scene_id:
+                      type: string
+                      description: ID of a ready scene
+                      example: scene_660e8400e29b41d4
+                    options:
+                      $ref: '#/components/schemas/RenderOptions'
+                - type: object
+                  title: Multi-Character Render
+                  required:
+                    - scene_id
+                    - character_mapping
+                  properties:
+                    scene_id:
+                      type: string
+                      description: ID of a multi-person template scene
+                    character_mapping:
+                      type: object
+                      additionalProperties:
+                        type: string
+                      description: Maps segment UUIDs to character IDs
+                      example:
+                        person_a1b2c3d4: char_alice
+                        person_e5f6g7h8: char_bob
+                    options:
+                      $ref: '#/components/schemas/RenderOptions'
+      responses:
+        '200':
+          description: Render job created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job_id:
+                    type: string
+                    example: job_abc123xyz
+                  status:
+                    type: string
+                    example: queued
+        '422':
+          description: Asset not ready
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/render/{job_id}/poll:
+    get:
+      summary: Poll for Chunks (Live Render)
+      description: Long-poll for new video chunks. Blocks until chunks are ready, job completes, or timeout. Use for real-time progressive playback.
+      operationId: pollRenderChunks
+      tags:
+        - Render
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: after
+          in: query
+          schema:
+            type: integer
+            default: -1
+          description: Return chunks after this index. Use -1 for first poll.
+        - name: timeout
+          in: query
+          schema:
+            type: integer
+            default: 30
+            maximum: 60
+          description: Max seconds to wait
+      responses:
+        '200':
+          description: Poll response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [queued, processing, rendering, complete, failed]
+                  chunks:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        index:
+                          type: integer
+                        url:
+                          type: string
+                          format: uri
+                  progress:
+                    type: object
+                    properties:
+                      completed:
+                        type: integer
+                      total:
+                        type: integer
+                  queue_position:
+                    type: integer
+                  video_url:
+                    type: string
+                    format: uri
+                  error:
+                    type: string
+
+  /api/render/{job_id}:
+    get:
+      summary: Get Job Status (Batch Render)
+      description: Check job status. Returns immediately. Poll every 5 seconds until complete or failed.
+      operationId: getRenderJobStatus
+      tags:
+        - Render
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Job status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RenderJob'
+
+  /api/render/{job_id}/video:
+    get:
+      summary: Download Video
+      description: Download the completed video. Only available when job status is complete.
+      operationId: downloadRenderVideo
+      tags:
+        - Render
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Video file
+          content:
+            video/mp4:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Job not found or not complete
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
