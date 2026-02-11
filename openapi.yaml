@@ -731,21 +731,11 @@ paths:
                   type: string
                   description: 'RGB string for solid background color, e.g., "0,255,0". Only used when background_mode is solid.'
                   example: '0,255,0'
-                output_fps:
-                  type: integer
-                  nullable: true
-                  description: Output frame rate. Omit to match input video.
                 resolution:
                   type: string
                   enum: [original, 720p, 1080p]
                   default: original
                   description: Output resolution
-                mask_dilation:
-                  type: integer
-                  default: 0
-                  minimum: 0
-                  maximum: 20
-                  description: Pixel dilation applied to the character mask (0-20)
                 fast:
                   type: boolean
                   default: false

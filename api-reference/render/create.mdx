@@ -34,16 +34,8 @@ Parameters are sent as form fields (not JSON).
   RGB string for solid background, e.g., `"0,255,0"`. Only used when `background_mode` is `solid`.
 </ParamField>
 
-<ParamField body="output_fps" type="integer">
-  Output frame rate. Omit to match input video.
-</ParamField>
-
 <ParamField body="resolution" type="string" default="original">
   Output resolution: `original`, `720p`, or `1080p`.
-</ParamField>
-
-<ParamField body="mask_dilation" type="integer" default="0">
-  Pixel dilation for character mask (0-20).
 </ParamField>
 
 <ParamField body="fast" type="boolean" default="false">

@@ -32,12 +32,6 @@ Configure video generation by passing form fields when creating a render job via
   ```
 </ParamField>
 
-<ParamField body="output_fps" type="integer | null" default="null">
-  Output frame rate. Set to `null` or omit (default) to match the input video frame rate.
-
-  Common values: `24`, `30`, `60`
-</ParamField>
-
 <ParamField body="resolution" type="string" default="original">
   Output resolution. Use `original` to match the input, or specify a target like `720p` or `1080p`.
 
@@ -46,10 +40,6 @@ Configure video generation by passing form fields when creating a render job via
   | `original` | Match input video resolution (default) |
   | `720p` | 1280x720 |
   | `1080p` | 1920x1080 |
-</ParamField>
-
-<ParamField body="mask_dilation" type="integer" default="0">
-  Pixel dilation applied to the character mask. Higher values expand the mask boundary, which can help avoid edge artifacts. Range: `0` to `20`.
 </ParamField>
 
 <ParamField body="fast" type="boolean" default="false">
@@ -101,19 +91,17 @@ curl -X POST "https://api.viggle.ai/api/render" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -d "character_id=char_xxx" \
   -d "scene_id=scene_xxx" \
-  -d "background_mode=transparent" \
-  -d "output_fps=30"
+  -d "background_mode=transparent"
 ```
 
-### Custom Resolution with Mask Dilation
+### Custom Resolution
 
 ```bash
 curl -X POST "https://api.viggle.ai/api/render" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -d "character_id=char_xxx" \
   -d "scene_id=scene_xxx" \
-  -d "resolution=1080p" \
-  -d "mask_dilation=5"
+  -d "resolution=1080p"
 ```
 
 ## Background Mode Comparison
@@ -134,12 +122,6 @@ curl -X POST "https://api.viggle.ai/api/render" \
     - Use **solid** or **transparent** when compositing in video editors
   </Accordion>
 
-  <Accordion title="Mask dilation">
-    - Start with **0** (default) and increase if you see edge artifacts
-    - Values of **3-5** work well for most cases with artifacts
-    - Higher values (10+) may cause the mask to bleed into the background
-  </Accordion>
-
   <Accordion title="Transparent mode and mask">
     When using `background_mode=transparent`, the API generates two outputs:
     - **Main video**: Character rendered on a black background
@@ -150,7 +132,6 @@ curl -X POST "https://api.viggle.ai/api/render" \
 
   <Accordion title="Performance optimization">
     - Enable **fast** mode for time-sensitive renders when capacity is available
-    - Consider lower **output_fps** for smaller file sizes
     - Use **720p** resolution for faster renders when full resolution isn't needed
   </Accordion>
 </AccordionGroup>
