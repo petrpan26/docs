@@ -324,7 +324,7 @@ components:
       properties:
         detail:
           type: string
-          example: API key required. Use Authorization: Bearer sk-xxx
+          example: "API key required. Use Authorization: Bearer sk-xxx"
 
     Deleted:
       type: object
