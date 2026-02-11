@@ -84,6 +84,10 @@
       ]
     },
     {
+      "group": "Credits",
+      "pages": ["api-reference/credits/balance"]
+    },
+    {
       "group": "Reference",
       "pages": ["render-options", "errors"]
     }

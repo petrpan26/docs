@@ -333,7 +333,43 @@ components:
           type: string
           example: deleted
 
+    CreditBalance:
+      type: object
+      properties:
+        credits_available:
+          type: number
+          example: 250.0
+        user_id:
+          type: string
+          example: usr_550e8400e29b41d4
+
 paths:
+  # ──────────────────────────────────────────────
+  # Credits
+  # ──────────────────────────────────────────────
+  /api/credits:
+    get:
+      summary: Get Credit Balance
+      description: Retrieve the current credit balance for the authenticated user.
+      operationId: getCreditBalance
+      tags:
+        - Credits
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Credit balance
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreditBalance'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   # ──────────────────────────────────────────────
   # Characters
   # ──────────────────────────────────────────────
