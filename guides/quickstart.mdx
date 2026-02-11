@@ -1,0 +1,334 @@
+---
+title: 'Quickstart Guide'
+description: 'Render your first AI animation video in minutes'
+---
+
+Generate your first AI-powered character animation video. This guide walks through the complete workflow: create a character, create a scene, render, and download.
+
+## Prerequisites
+
+- A Viggle API key ([get one here](https://viggle.ai/api-keys))
+- A reference image (PNG or JPG) of the character you want to animate
+- A driving video (MP4) containing the motion you want to transfer
+
+## Step 1: Create a Character
+
+Upload a reference image to create a reusable character. This extracts a character embedding that can be used across multiple renders. **Costs 1 credit.**
+
+<CodeGroup>
+
+```python Python
+import requests
+
+API_KEY = "YOUR_API_KEY"
+BASE = "https://api.viggle.ai"
+headers = {"Authorization": f"Bearer {API_KEY}"}
+
+# Upload reference image
+resp = requests.post(
+    f"{BASE}/api/characters/preprocess",
+    headers=headers,
+    files={"image": open("character.png", "rb")},
+    data={"name": "My Character"}
+)
+character = resp.json()
+character_id = character["id"]
+print(f"Character ID: {character_id}")
+# Output: Character ID: 550e8400-e29b-41d4-...
+```
+
+```javascript JavaScript
+const API_KEY = "YOUR_API_KEY";
+const BASE = "https://api.viggle.ai";
+const headers = { "Authorization": `Bearer ${API_KEY}` };
+
+const formData = new FormData();
+formData.append("name", "My Character");
+formData.append("image", imageFile);
+
+const resp = await fetch(`${BASE}/api/characters/preprocess`, {
+  method: "POST", headers, body: formData
+}).then(r => r.json());
+
+const characterId = resp.id;
+console.log(`Character ID: ${characterId}`);
+```
+
+```bash cURL
+curl -X POST "https://api.viggle.ai/api/characters/preprocess" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -F "name=My Character" \
+  -F "image=@character.png"
+```
+
+</CodeGroup>
+
+Poll until the character is ready:
+
+<CodeGroup>
+
+```python Python
+import time
+
+while True:
+    status = requests.get(
+        f"{BASE}/api/characters/{character_id}",
+        headers=headers
+    ).json()
+    print(f"Status: {status['status']}")
+
+    if status["status"] == "ready":
+        print("Character ready!")
+        break
+    elif status["status"] == "failed":
+        raise Exception(f"Failed: {status.get('error_message')}")
+
+    time.sleep(5)
+```
+
+```javascript JavaScript
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+while (true) {
+  const status = await fetch(`${BASE}/api/characters/${characterId}`, { headers }).then(r => r.json());
+  console.log(`Status: ${status.status}`);
+
+  if (status.status === "ready") break;
+  if (status.status === "failed") throw new Error(status.error_message);
+
+  await sleep(5000);
+}
+```
+
+</CodeGroup>
+
+## Step 2: Create a Scene
+
+Upload a driving video to extract motion data. The scene can be reused with different characters. **Costs 1 credit per second of video.**
+
+<CodeGroup>
+
+```python Python
+resp = requests.post(
+    f"{BASE}/api/scenes/preprocess",
+    headers=headers,
+    files={"video": open("dance.mp4", "rb")},
+    data={"name": "Dance Sequence"}
+)
+scene = resp.json()
+scene_id = scene["id"]
+print(f"Scene ID: {scene_id}")
+print(f"Duration: {scene.get('duration_seconds')}s")
+```
+
+```javascript JavaScript
+const sceneForm = new FormData();
+sceneForm.append("name", "Dance Sequence");
+sceneForm.append("video", videoFile);
+
+const sceneResp = await fetch(`${BASE}/api/scenes/preprocess`, {
+  method: "POST", headers, body: sceneForm
+}).then(r => r.json());
+
+const sceneId = sceneResp.id;
+console.log(`Scene ID: ${sceneId}`);
+```
+
+```bash cURL
+curl -X POST "https://api.viggle.ai/api/scenes/preprocess" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -F "name=Dance Sequence" \
+  -F "video=@dance.mp4"
+```
+
+</CodeGroup>
+
+Poll until the scene is ready:
+
+<CodeGroup>
+
+```python Python
+while True:
+    status = requests.get(
+        f"{BASE}/api/scenes/{scene_id}",
+        headers=headers
+    ).json()
+    print(f"Status: {status['status']}")
+
+    if status["status"] == "ready":
+        print("Scene ready!")
+        break
+    elif status["status"] == "failed":
+        raise Exception(f"Failed: {status.get('error_message')}")
+
+    time.sleep(5)
+```
+
+```javascript JavaScript
+while (true) {
+  const status = await fetch(`${BASE}/api/scenes/${sceneId}`, { headers }).then(r => r.json());
+  console.log(`Status: ${status.status}`);
+
+  if (status.status === "ready") break;
+  if (status.status === "failed") throw new Error(status.error_message);
+
+  await sleep(5000);
+}
+```
+
+</CodeGroup>
+
+## Step 3: Create a Render Job
+
+Combine the character and scene to generate an animated video.
+
+<CodeGroup>
+
+```python Python
+job = requests.post(f"{BASE}/api/render", headers=headers, data={
+    "character_id": character_id,
+    "scene_id": scene_id,
+}).json()
+
+print(f"Job created: {job['job_id']}")
+```
+
+```javascript JavaScript
+const renderForm = new URLSearchParams();
+renderForm.append("character_id", characterId);
+renderForm.append("scene_id", sceneId);
+
+const job = await fetch(`${BASE}/api/render`, {
+  method: "POST", headers, body: renderForm
+}).then(r => r.json());
+
+console.log(`Job created: ${job.job_id}`);
+```
+
+```bash cURL
+curl -X POST "https://api.viggle.ai/api/render" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -d "character_id=CHAR_ID" \
+  -d "scene_id=SCENE_ID"
+```
+
+</CodeGroup>
+
+## Step 4: Wait for Completion
+
+Poll the status endpoint (no authentication required) until the job is complete.
+
+<CodeGroup>
+
+```python Python
+while True:
+    status = requests.get(f"{BASE}/api/render/{job['job_id']}").json()
+    progress = status.get("progress", {})
+    completed = progress.get("completed_chunks", 0)
+    total = progress.get("total_chunks", 0)
+
+    print(f"Status: {status['status']} ({completed}/{total} chunks)")
+
+    if status["status"] == "complete":
+        print(f"Video ready!")
+        break
+    elif status["status"] == "failed":
+        raise Exception(f"Render failed: {status.get('error')}")
+
+    time.sleep(5)
+```
+
+```javascript JavaScript
+while (true) {
+  const status = await fetch(`${BASE}/api/render/${job.job_id}`).then(r => r.json());
+  const { completed_chunks = 0, total_chunks = 0 } = status.progress ?? {};
+
+  console.log(`Status: ${status.status} (${completed_chunks}/${total_chunks} chunks)`);
+
+  if (status.status === "complete") break;
+  if (status.status === "failed") throw new Error(status.error);
+
+  await sleep(5000);
+}
+```
+
+</CodeGroup>
+
+## Step 5: Download the Video
+
+Download the completed video (authentication required).
+
+<CodeGroup>
+
+```python Python
+video = requests.get(
+    f"{BASE}/api/render/{job['job_id']}/download",
+    headers=headers
+)
+
+with open("output.mp4", "wb") as f:
+    f.write(video.content)
+
+print("Saved to output.mp4")
+```
+
+```javascript JavaScript
+const video = await fetch(
+  `${BASE}/api/render/${job.job_id}/download`,
+  { headers }
+).then(r => r.arrayBuffer());
+
+const fs = require('fs');
+fs.writeFileSync("output.mp4", Buffer.from(video));
+console.log("Saved to output.mp4");
+```
+
+```bash cURL
+curl -L "https://api.viggle.ai/api/render/JOB_ID/download" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -o output.mp4
+```
+
+</CodeGroup>
+
+## Reusing Assets
+
+Once preprocessed, characters and scenes can be reused across multiple renders without re-uploading:
+
+```python
+# Render the same character with a different scene
+job2 = requests.post(f"{BASE}/api/render", headers=headers, data={
+    "character_id": character_id,  # reuse existing character
+    "scene_id": another_scene_id,
+}).json()
+
+# Render a different character with the same scene
+job3 = requests.post(f"{BASE}/api/render", headers=headers, data={
+    "character_id": another_character_id,
+    "scene_id": scene_id,  # reuse existing scene
+}).json()
+```
+
+List your assets anytime:
+
+```python
+characters = requests.get(f"{BASE}/api/characters", headers=headers).json()
+scenes = requests.get(f"{BASE}/api/scenes", headers=headers).json()
+```
+
+## What's Next?
+
+<CardGroup cols={2}>
+  <Card title="Render Options" icon="sliders" href="/render-options">
+    Customize background mode, resolution, frame rate, and more
+  </Card>
+  <Card title="Compositing Guide" icon="layer-group" href="/guides/compositing">
+    Use transparent mode + mask for professional compositing
+  </Card>
+  <Card title="Live Rendering" icon="bolt" href="/guides/live-render">
+    Stream video chunks in real-time as they render
+  </Card>
+  <Card title="Batch Processing" icon="list-check" href="/guides/batch-processing">
+    Render multiple videos concurrently
+  </Card>
+</CardGroup>
