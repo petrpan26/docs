@@ -66,6 +66,10 @@ Long-poll for new video chunks. Blocks until chunks are ready, job completes, or
   CDN URL to complete video (when status is `complete`)
 </ResponseField>
 
+<ResponseField name="mask_cdn_url" type="string">
+  CDN URL for mask video (when status is `complete` and `background_mode=transparent` was used)
+</ResponseField>
+
 <ResponseField name="error" type="string">
   Error message (when status is `failed`)
 </ResponseField>

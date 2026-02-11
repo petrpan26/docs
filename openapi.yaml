@@ -42,6 +42,15 @@ components:
           format: uri
           nullable: true
           description: CDN URL to download complete video (when status is complete)
+        mask_cdn_url:
+          type: string
+          format: uri
+          nullable: true
+          description: CDN URL for mask video (transparent background mode only)
+        mask_download_url:
+          type: string
+          nullable: true
+          description: URL to download mask video (transparent background mode only)
         chunks:
           type: array
           items:
@@ -107,6 +116,11 @@ components:
           format: uri
           nullable: true
           description: CDN URL to complete video (when status is complete)
+        mask_cdn_url:
+          type: string
+          format: uri
+          nullable: true
+          description: CDN URL for mask video (transparent background mode only)
         error:
           type: string
           nullable: true
@@ -151,9 +165,9 @@ paths:
                   example: '{"person_a1b2c3d4": "char_alice", "person_e5f6g7h8": "char_bob"}'
                 model:
                   type: string
-                  enum: [V3, V4]
+                  enum: [V4]
                   default: V4
-                  description: Rendering model. V4 (default, better quality) or V3 (faster).
+                  description: Rendering model. Currently only V4 is available.
                 background_mode:
                   type: string
                   enum: [inpaint, original, solid, transparent]
@@ -348,6 +362,44 @@ paths:
                 $ref: '#/components/schemas/Error'
         '404':
           description: Job not found or not complete
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/render/{job_id}/download/mask:
+    get:
+      summary: Download Mask Video
+      description: Download the mask video for transparent mode renders. Only available when background_mode was transparent and job is complete. Returns a 302 redirect to the CDN URL.
+      operationId: downloadRenderMask
+      tags:
+        - Render
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: job_abc123xyz
+      responses:
+        '302':
+          description: Redirect to mask CDN URL
+          headers:
+            Location:
+              schema:
+                type: string
+                format: uri
+              description: CDN URL for the mask video file
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: No mask available (job not found, not complete, or not transparent mode)
           content:
             application/json:
               schema:

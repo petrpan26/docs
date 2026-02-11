@@ -59,6 +59,14 @@ Check job status. Returns immediately. Poll every 5 seconds until `complete` or 
   </Expandable>
 </ResponseField>
 
+<ResponseField name="mask_cdn_url" type="string">
+  CDN URL for the mask video. Only present when `background_mode=transparent` was used and job is `complete`.
+</ResponseField>
+
+<ResponseField name="mask_download_url" type="string">
+  URL to download the mask video. Only present when `background_mode=transparent` was used and job is `complete`.
+</ResponseField>
+
 <ResponseField name="error" type="string">
   Error message (when status is `failed`)
 </ResponseField>

@@ -10,6 +10,10 @@ Download the completed video. Only available when job status is `complete`. Retu
   This endpoint requires authentication. Include your API key in the `Authorization: Bearer` header.
 </Note>
 
+<Info>
+  **Transparent Mode**: When `background_mode=transparent` was used, a separate mask video is also available at `GET /api/render/{job_id}/download/mask`. The mask is a grayscale video (white = character, black = background) for compositing in video editors.
+</Info>
+
 ## Path Parameters
 
 <ParamField path="job_id" type="string" required>

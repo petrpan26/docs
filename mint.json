@@ -44,6 +44,15 @@
       "pages": ["introduction", "authentication"]
     },
     {
+      "group": "Guides",
+      "pages": [
+        "guides/quickstart",
+        "guides/compositing",
+        "guides/live-render",
+        "guides/batch-processing"
+      ]
+    },
+    {
       "group": "Render",
       "pages": [
         "api-reference/render/overview",
