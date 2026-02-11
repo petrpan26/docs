@@ -101,5 +101,14 @@
       "method": "bearer"
     }
   },
-  "openapi": "openapi.yaml"
+  "openapi": "openapi.yaml",
+  "headTags": [
+    {
+      "tag": "script",
+      "attributes": {
+        "src": "/scripts/copy-for-llm.js",
+        "defer": "true"
+      }
+    }
+  ]
 }
