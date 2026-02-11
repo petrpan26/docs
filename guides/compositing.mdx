@@ -29,7 +29,7 @@ graph LR
 import requests
 
 API_KEY = "YOUR_API_KEY"
-BASE = "https://api.viggle.ai"
+BASE = "https://apis.viggle.ai"
 headers = {"Authorization": f"Bearer {API_KEY}"}
 
 job = requests.post(f"{BASE}/api/render", headers=headers, data={
@@ -43,7 +43,7 @@ print(f"Job ID: {job['job_id']}")
 ```
 
 ```bash cURL
-curl -X POST "https://api.viggle.ai/api/render" \
+curl -X POST "https://apis.viggle.ai/api/render" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -d "character_id=char_xxx" \
   -d "scene_id=scene_xxx" \
@@ -78,8 +78,8 @@ while True:
 {
   "job_id": "job_abc123xyz",
   "status": "complete",
-  "cdn_url": "https://cdn.viggle.ai/videos/job_abc123xyz/output.mp4",
-  "mask_cdn_url": "https://cdn.viggle.ai/videos/job_abc123xyz/output_mask.mp4",
+  "cdn_url": "https://assets.viggle.ai/videos/job_abc123xyz/output.mp4",
+  "mask_cdn_url": "https://assets.viggle.ai/videos/job_abc123xyz/output_mask.mp4",
   "mask_download_url": "/api/render/job_abc123xyz/download/mask",
   "progress": { "completed_chunks": 5, "total_chunks": 5, "percent": 100.0 }
 }
@@ -111,12 +111,12 @@ print("Downloaded character.mp4 and character_mask.mp4")
 
 ```bash cURL
 # Download main video
-curl -L "https://api.viggle.ai/api/render/JOB_ID/download" \
+curl -L "https://apis.viggle.ai/api/render/JOB_ID/download" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -o character.mp4
 
 # Download mask video
-curl -L "https://api.viggle.ai/api/render/JOB_ID/download/mask" \
+curl -L "https://apis.viggle.ai/api/render/JOB_ID/download/mask" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -o character_mask.mp4
 ```
@@ -156,7 +156,7 @@ import requests
 import time
 
 API_KEY = "YOUR_API_KEY"
-BASE = "https://api.viggle.ai"
+BASE = "https://apis.viggle.ai"
 headers = {"Authorization": f"Bearer {API_KEY}"}
 
 # 1. Create transparent render

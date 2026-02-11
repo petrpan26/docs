@@ -7,7 +7,7 @@ info:
     name: Viggle Support
     url: https://viggle.ai
 servers:
-  - url: https://api.viggle.ai
+  - url: https://apis.viggle.ai
     description: Production server
 
 components:

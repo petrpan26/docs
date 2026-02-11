@@ -25,13 +25,13 @@ Cancel a running job or delete a completed one. Releases reserved resources and 
 <RequestExample>
 
 ```bash cURL
-curl -X DELETE "https://api.viggle.ai/api/render/job_abc123xyz" \
+curl -X DELETE "https://apis.viggle.ai/api/render/job_abc123xyz" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
 ```python Python
 response = requests.delete(
-    f"https://api.viggle.ai/api/render/{job_id}",
+    f"https://apis.viggle.ai/api/render/{job_id}",
     headers={"Authorization": f"Bearer {API_KEY}"}
 )
 print(response.json())

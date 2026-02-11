@@ -55,7 +55,7 @@ Parameters are sent as form fields (not JSON).
 <RequestExample>
 
 ```bash cURL
-curl -X POST "https://api.viggle.ai/api/render" \
+curl -X POST "https://apis.viggle.ai/api/render" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -d "character_id=char_550e8400e29b41d4" \
   -d "scene_id=scene_660e8400e29b41d4" \
@@ -66,7 +66,7 @@ curl -X POST "https://api.viggle.ai/api/render" \
 import requests
 
 response = requests.post(
-    "https://api.viggle.ai/api/render",
+    "https://apis.viggle.ai/api/render",
     headers={"Authorization": "Bearer YOUR_API_KEY"},
     data={
         "character_id": "char_550e8400e29b41d4",
@@ -84,7 +84,7 @@ form.append("character_id", "char_550e8400e29b41d4");
 form.append("scene_id", "scene_660e8400e29b41d4");
 form.append("background_mode", "inpaint");
 
-const response = await fetch("https://api.viggle.ai/api/render", {
+const response = await fetch("https://apis.viggle.ai/api/render", {
   method: "POST",
   headers: { "Authorization": `Bearer ${API_KEY}` },
   body: form

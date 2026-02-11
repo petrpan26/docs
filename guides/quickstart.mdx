@@ -21,7 +21,7 @@ Upload a reference image to create a reusable character. This extracts a charact
 import requests
 
 API_KEY = "YOUR_API_KEY"
-BASE = "https://api.viggle.ai"
+BASE = "https://apis.viggle.ai"
 headers = {"Authorization": f"Bearer {API_KEY}"}
 
 # Upload reference image
@@ -39,7 +39,7 @@ print(f"Character ID: {character_id}")
 
 ```javascript JavaScript
 const API_KEY = "YOUR_API_KEY";
-const BASE = "https://api.viggle.ai";
+const BASE = "https://apis.viggle.ai";
 const headers = { "Authorization": `Bearer ${API_KEY}` };
 
 const formData = new FormData();
@@ -55,7 +55,7 @@ console.log(`Character ID: ${characterId}`);
 ```
 
 ```bash cURL
-curl -X POST "https://api.viggle.ai/api/characters/preprocess" \
+curl -X POST "https://apis.viggle.ai/api/characters/preprocess" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -F "name=My Character" \
   -F "image=@character.png"
@@ -135,7 +135,7 @@ console.log(`Scene ID: ${sceneId}`);
 ```
 
 ```bash cURL
-curl -X POST "https://api.viggle.ai/api/scenes/preprocess" \
+curl -X POST "https://apis.viggle.ai/api/scenes/preprocess" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -F "name=Dance Sequence" \
   -F "video=@dance.mp4"
@@ -206,7 +206,7 @@ console.log(`Job created: ${job.job_id}`);
 ```
 
 ```bash cURL
-curl -X POST "https://api.viggle.ai/api/render" \
+curl -X POST "https://apis.viggle.ai/api/render" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -d "character_id=CHAR_ID" \
   -d "scene_id=SCENE_ID"
@@ -284,7 +284,7 @@ console.log("Saved to output.mp4");
 ```
 
 ```bash cURL
-curl -L "https://api.viggle.ai/api/render/JOB_ID/download" \
+curl -L "https://apis.viggle.ai/api/render/JOB_ID/download" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -o output.mp4
 ```

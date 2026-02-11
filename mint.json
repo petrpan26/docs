@@ -96,7 +96,7 @@
     "linkedin": "https://www.linkedin.com/company/viggle"
   },
   "api": {
-    "baseUrl": "https://api.viggle.ai",
+    "baseUrl": "https://apis.viggle.ai",
     "auth": {
       "method": "bearer"
     }

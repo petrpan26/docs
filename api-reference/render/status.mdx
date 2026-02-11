@@ -74,14 +74,14 @@ Check job status. Returns immediately. Poll every 5 seconds until `complete` or 
 <RequestExample>
 
 ```bash cURL
-curl "https://api.viggle.ai/api/render/job_abc123xyz"
+curl "https://apis.viggle.ai/api/render/job_abc123xyz"
 ```
 
 ```python Python
 import requests
 import time
 
-BASE = "https://api.viggle.ai"
+BASE = "https://apis.viggle.ai"
 
 job_id = "job_abc123xyz"
 
@@ -111,7 +111,7 @@ const jobId = "job_abc123xyz";
 async function waitForComplete() {
   while (true) {
     const response = await fetch(
-      `https://api.viggle.ai/api/render/${jobId}`
+      `https://apis.viggle.ai/api/render/${jobId}`
     );
     const status = await response.json();
     const completed = status.progress?.completed_chunks ?? 0;
@@ -150,9 +150,9 @@ async function waitForComplete() {
   },
   "cdn_url": null,
   "chunks": [
-    { "chunk_id": 0, "cdn_url": "https://cdn.viggle.ai/chunks/..." },
-    { "chunk_id": 1, "cdn_url": "https://cdn.viggle.ai/chunks/..." },
-    { "chunk_id": 2, "cdn_url": "https://cdn.viggle.ai/chunks/..." }
+    { "chunk_id": 0, "cdn_url": "https://assets.viggle.ai/chunks/..." },
+    { "chunk_id": 1, "cdn_url": "https://assets.viggle.ai/chunks/..." },
+    { "chunk_id": 2, "cdn_url": "https://assets.viggle.ai/chunks/..." }
   ],
   "error": null
 }

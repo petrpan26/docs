@@ -38,7 +38,7 @@ Upload a driving video to create a reusable scene. The scene extracts motion dat
 <RequestExample>
 
 ```bash cURL
-curl -X POST "https://api.viggle.ai/api/scenes/preprocess" \
+curl -X POST "https://apis.viggle.ai/api/scenes/preprocess" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -F "name=Dance Sequence" \
   -F "video=@dance.mp4"
@@ -48,7 +48,7 @@ curl -X POST "https://api.viggle.ai/api/scenes/preprocess" \
 import requests
 
 response = requests.post(
-    "https://api.viggle.ai/api/scenes/preprocess",
+    "https://apis.viggle.ai/api/scenes/preprocess",
     headers={"Authorization": "Bearer YOUR_API_KEY"},
     files={"video": open("dance.mp4", "rb")},
     data={"name": "Dance Sequence"}
@@ -61,7 +61,7 @@ const formData = new FormData();
 formData.append('name', 'Dance Sequence');
 formData.append('video', videoFile);
 
-const response = await fetch("https://api.viggle.ai/api/scenes/preprocess", {
+const response = await fetch("https://apis.viggle.ai/api/scenes/preprocess", {
   method: "POST",
   headers: {
     "Authorization": `Bearer ${API_KEY}`

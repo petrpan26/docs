@@ -36,7 +36,7 @@ Upload a reference image to create a reusable character. Processing runs in back
 <RequestExample>
 
 ```bash cURL
-curl -X POST "https://api.viggle.ai/api/characters/preprocess" \
+curl -X POST "https://apis.viggle.ai/api/characters/preprocess" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -F "name=My Character" \
   -F "image=@character.png"
@@ -46,7 +46,7 @@ curl -X POST "https://api.viggle.ai/api/characters/preprocess" \
 import requests
 
 response = requests.post(
-    "https://api.viggle.ai/api/characters/preprocess",
+    "https://apis.viggle.ai/api/characters/preprocess",
     headers={"Authorization": "Bearer YOUR_API_KEY"},
     files={"image": open("character.png", "rb")},
     data={"name": "My Character"}
@@ -59,7 +59,7 @@ const formData = new FormData();
 formData.append('name', 'My Character');
 formData.append('image', imageFile);
 
-const response = await fetch("https://api.viggle.ai/api/characters/preprocess", {
+const response = await fetch("https://apis.viggle.ai/api/characters/preprocess", {
   method: "POST",
   headers: {
     "Authorization": `Bearer ${API_KEY}`

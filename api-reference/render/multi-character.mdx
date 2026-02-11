@@ -66,7 +66,7 @@ Parameters are sent as form fields (`multipart/form-data`).
 
 ```bash cURL
 # Map different avatars to each person in the scene
-curl -X POST "https://api.viggle.ai/api/render" \
+curl -X POST "https://apis.viggle.ai/api/render" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -d "scene_id=scene_770e8400e29b41d4" \
   -d 'character_mapping={"person_a1b2c3d4":"char_alice","person_e5f6g7h8":"char_bob","person_i9j0k1l2":"char_carol"}' \
@@ -85,7 +85,7 @@ character_mapping = {
 }
 
 response = requests.post(
-    "https://api.viggle.ai/api/render",
+    "https://apis.viggle.ai/api/render",
     headers={"Authorization": "Bearer YOUR_API_KEY"},
     data={
         "scene_id": "scene_770e8400e29b41d4",
@@ -109,7 +109,7 @@ form.append("scene_id", "scene_770e8400e29b41d4");
 form.append("character_mapping", JSON.stringify(characterMapping));
 form.append("background_mode", "inpaint");
 
-const response = await fetch("https://api.viggle.ai/api/render", {
+const response = await fetch("https://apis.viggle.ai/api/render", {
   method: "POST",
   headers: { "Authorization": `Bearer ${API_KEY}` },
   body: form
@@ -138,7 +138,7 @@ console.log(`Multi-character job: ${job.job_id}`);
 You don't need to map all segments. Unmapped people retain their original appearance:
 
 ```bash
-curl -X POST "https://api.viggle.ai/api/render" \
+curl -X POST "https://apis.viggle.ai/api/render" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -d "scene_id=scene_770e8400e29b41d4" \
   -d 'character_mapping={"person_a1b2c3d4":"char_alice"}'
@@ -150,7 +150,7 @@ curl -X POST "https://api.viggle.ai/api/render" \
 Map multiple segments to the same character ID:
 
 ```bash
-curl -X POST "https://api.viggle.ai/api/render" \
+curl -X POST "https://apis.viggle.ai/api/render" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -d "scene_id=scene_770e8400e29b41d4" \
   -d 'character_mapping={"person_a1b2c3d4":"char_alice","person_e5f6g7h8":"char_alice","person_i9j0k1l2":"char_bob"}'

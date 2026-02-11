@@ -52,7 +52,7 @@ Import a multi-person scene from a Viggle template. Multi-person templates conta
 <RequestExample>
 
 ```bash cURL
-curl -X POST "https://api.viggle.ai/api/scenes/import" \
+curl -X POST "https://apis.viggle.ai/api/scenes/import" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -65,7 +65,7 @@ curl -X POST "https://api.viggle.ai/api/scenes/import" \
 import requests
 
 response = requests.post(
-    "https://api.viggle.ai/api/scenes/import",
+    "https://apis.viggle.ai/api/scenes/import",
     headers={
         "Authorization": "Bearer YOUR_API_KEY",
         "Content-Type": "application/json"
@@ -83,7 +83,7 @@ for segment in data["segments"]:
 ```
 
 ```javascript JavaScript
-const response = await fetch("https://api.viggle.ai/api/scenes/import", {
+const response = await fetch("https://apis.viggle.ai/api/scenes/import", {
   method: "POST",
   headers: {
     "Authorization": `Bearer ${API_KEY}`,
