@@ -78,10 +78,10 @@ All API endpoints return errors in a consistent JSON format.
 </ResponseField>
 
 <ResponseField name="503" type="Service Unavailable">
-  Insufficient GPU capacity for fast mode.
-  
+  Insufficient capacity for fast mode.
+
   **Common causes:**
-  - Requesting `fast: true` when GPU capacity is unavailable
+  - Requesting `fast: true` when capacity is unavailable
   - High system load
   
   **Solution:** Retry with `fast: false` or wait and retry later.

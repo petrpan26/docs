@@ -18,6 +18,200 @@ components:
       description: API key passed as Bearer token
 
   schemas:
+    Character:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 550e8400-e29b-41d4-a716-446655440000
+        name:
+          type: string
+          example: My Character
+        status:
+          type: string
+          enum: [pending, ready, failed]
+        job_id:
+          type: string
+          nullable: true
+          example: char_550e8400e29b
+        error_message:
+          type: string
+          nullable: true
+        credits_used:
+          type: number
+          nullable: true
+          example: 1.0
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    CharacterCreated:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 550e8400-e29b-41d4-a716-446655440000
+        job_id:
+          type: string
+          example: char_550e8400e29b
+        name:
+          type: string
+          example: My Character
+        status:
+          type: string
+          example: pending
+        credits_reserved:
+          type: number
+          example: 1.0
+
+    CharacterListItem:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        status:
+          type: string
+          enum: [pending, ready, failed]
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    Scene:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 660e8400-e29b-41d4-a716-446655440000
+        name:
+          type: string
+          example: Dance Sequence
+        status:
+          type: string
+          enum: [pending, ready, failed]
+        duration_seconds:
+          type: number
+          nullable: true
+          example: 6.67
+        fps:
+          type: number
+          nullable: true
+          example: 30.0
+        total_frames:
+          type: integer
+          nullable: true
+          example: 200
+        width:
+          type: integer
+          nullable: true
+          example: 1920
+        height:
+          type: integer
+          nullable: true
+          example: 1080
+        total_chunks:
+          type: integer
+          nullable: true
+          example: 8
+        job_id:
+          type: string
+          nullable: true
+          example: scene_660e8400e29b
+        error_message:
+          type: string
+          nullable: true
+        credits_used:
+          type: number
+          nullable: true
+          example: 6.67
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    SceneCreated:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 660e8400-e29b-41d4-a716-446655440000
+        job_id:
+          type: string
+          example: scene_660e8400e29b
+        name:
+          type: string
+          example: Dance Sequence
+        status:
+          type: string
+          example: pending
+        credits_reserved:
+          type: number
+          example: 6.67
+        duration_seconds:
+          type: number
+          example: 6.67
+
+    SceneListItem:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        status:
+          type: string
+          enum: [pending, ready, failed]
+        duration_seconds:
+          type: number
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    SceneImported:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 770e8400-e29b-41d4-a716-446655440000
+        status:
+          type: string
+          example: pending
+        credits_reserved:
+          type: number
+          example: 15
+        segments:
+          type: array
+          items:
+            type: object
+            properties:
+              uuid:
+                type: string
+                example: person_a1b2c3d4
+              type:
+                type: string
+                example: human
+
     RenderJob:
       type: object
       properties:
@@ -132,7 +326,367 @@ components:
           type: string
           example: API key required. Use Authorization: Bearer sk-xxx
 
+    Deleted:
+      type: object
+      properties:
+        status:
+          type: string
+          example: deleted
+
 paths:
+  # ──────────────────────────────────────────────
+  # Characters
+  # ──────────────────────────────────────────────
+  /api/characters/preprocess:
+    post:
+      summary: Create Character
+      description: Upload a reference image to create a reusable character. Processing runs in background. Costs 1 credit. Poll GET /api/characters/{id} until status is ready.
+      operationId: createCharacter
+      tags:
+        - Characters
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - name
+                - image
+              properties:
+                name:
+                  type: string
+                  description: Display name for the character
+                  example: My Character
+                image:
+                  type: string
+                  format: binary
+                  description: Reference image file (PNG, JPG, WebP)
+      responses:
+        '200':
+          description: Character preprocessing started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CharacterCreated'
+        '400':
+          description: Invalid image type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '402':
+          description: Insufficient credits
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/characters:
+    get:
+      summary: List Characters
+      description: List all characters for the authenticated user, ordered by most recent first.
+      operationId: listCharacters
+      tags:
+        - Characters
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of characters
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CharacterListItem'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/characters/{character_id}:
+    get:
+      summary: Get Character
+      description: Get full details of a specific character including preprocessing status.
+      operationId: getCharacter
+      tags:
+        - Characters
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: character_id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: 550e8400-e29b-41d4-a716-446655440000
+      responses:
+        '200':
+          description: Character details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Character'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Character not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      summary: Delete Character
+      description: Soft-delete a character. The character will no longer appear in lists but existing renders using it are not affected.
+      operationId: deleteCharacter
+      tags:
+        - Characters
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: character_id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: 550e8400-e29b-41d4-a716-446655440000
+      responses:
+        '200':
+          description: Character deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Deleted'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Character not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ──────────────────────────────────────────────
+  # Scenes
+  # ──────────────────────────────────────────────
+  /api/scenes/preprocess:
+    post:
+      summary: Create Scene
+      description: Upload a driving video to create a reusable scene. Extracts motion data for character animation. Costs 1 credit per second of video. Poll GET /api/scenes/{id} until status is ready.
+      operationId: createScene
+      tags:
+        - Scenes
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - name
+                - video
+              properties:
+                name:
+                  type: string
+                  description: Display name for the scene
+                  example: Dance Sequence
+                video:
+                  type: string
+                  format: binary
+                  description: Driving video file (MP4, MOV, WebM)
+      responses:
+        '200':
+          description: Scene preprocessing started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SceneCreated'
+        '400':
+          description: Invalid video type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '402':
+          description: Insufficient credits
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/scenes/import:
+    post:
+      summary: Import Multi-Person Template
+      description: Import a multi-person scene from a Viggle template. Returns segment UUIDs for use in multi-character render.
+      operationId: importScene
+      tags:
+        - Scenes
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - template_id
+              properties:
+                template_id:
+                  type: string
+                  description: Viggle multi-person template UUID
+                  example: template_uuid
+                name:
+                  type: string
+                  description: Optional display name for the scene
+                  example: Group Dance
+      responses:
+        '200':
+          description: Scene imported
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SceneImported'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Template not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/scenes:
+    get:
+      summary: List Scenes
+      description: List all scenes for the authenticated user, ordered by most recent first.
+      operationId: listScenes
+      tags:
+        - Scenes
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of scenes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SceneListItem'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/scenes/{scene_id}:
+    get:
+      summary: Get Scene
+      description: Get full details of a specific scene including video metadata and preprocessing status.
+      operationId: getScene
+      tags:
+        - Scenes
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: scene_id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: 660e8400-e29b-41d4-a716-446655440000
+      responses:
+        '200':
+          description: Scene details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Scene'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Scene not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      summary: Delete Scene
+      description: Soft-delete a scene. The scene will no longer appear in lists but existing renders using it are not affected.
+      operationId: deleteScene
+      tags:
+        - Scenes
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: scene_id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: 660e8400-e29b-41d4-a716-446655440000
+      responses:
+        '200':
+          description: Scene deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Deleted'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Scene not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ──────────────────────────────────────────────
+  # Render
+  # ──────────────────────────────────────────────
   /api/render:
     post:
       summary: Create Render Job
@@ -195,7 +749,7 @@ paths:
                 fast:
                   type: boolean
                   default: false
-                  description: Enable parallel processing for ~2x speed
+                  description: Enable fast mode for faster rendering
       responses:
         '200':
           description: Render job created
@@ -253,7 +807,7 @@ paths:
 
     delete:
       summary: Cancel / Delete Job
-      description: Cancel a running job or delete a completed one. Releases reserved GPU workers and refunds credits for incomplete jobs.
+      description: Cancel a running job or delete a completed one. Releases reserved resources and refunds credits for incomplete jobs.
       operationId: cancelRenderJob
       tags:
         - Render

@@ -5,14 +5,17 @@ description: "Generate AI-powered character animation videos with the Viggle API
 
 ## Welcome to Viggle API
 
-Generate AI-powered character animation videos. Submit pre-processed character and scene IDs, then render videos with two modes: progressive chunk delivery for real-time playback, or batch processing for complete video download.
+Generate AI-powered character animation videos. Upload a reference image and a driving video, then render videos with two modes: progressive chunk delivery for real-time playback, or batch processing for complete video download.
 
-<CardGroup cols={2}>
-  <Card title="Live Render" icon="bolt">
-    Stream video chunks as they're generated. Ideal for real-time preview and progressive playback.
+<CardGroup cols={3}>
+  <Card title="Characters" icon="user">
+    Upload a reference image to create a reusable character embedding.
   </Card>
-  <Card title="Batch Render" icon="layer-group">
-    Wait for complete video. Simple workflow for background processing and file downloads.
+  <Card title="Scenes" icon="film">
+    Upload a driving video to extract motion data.
+  </Card>
+  <Card title="Render" icon="video">
+    Combine a character + scene to generate an animated video.
   </Card>
 </CardGroup>
 
@@ -26,19 +29,17 @@ https://api.viggle.ai
 
 ## Quick Start
 
-Generate your first AI animation video in 3 steps:
+Generate your first AI animation video in 5 steps:
 
 1. **Get API Key** - Create one in your [Dashboard](https://viggle.ai/dashboard)
-2. **Render** - Submit a character ID + scene ID via `POST /api/render`
-3. **Download** - Get your video from `/api/render/{job_id}/download`
-
-<Note>
-  Characters and scenes are preprocessed via the Viggle platform. You'll use their IDs (`char_xxx`, `scene_xxx`) when submitting render jobs through the API.
-</Note>
+2. **Create Character** - Upload a reference image via `POST /api/characters/preprocess`
+3. **Create Scene** - Upload a driving video via `POST /api/scenes/preprocess`
+4. **Render** - Submit the character ID + scene ID via `POST /api/render`
+5. **Download** - Get your video from `/api/render/{job_id}/download`
 
 ### Complete Example
 
-Copy and run this script. Replace `YOUR_API_KEY`, `char_xxx`, and `scene_xxx` with your actual values.
+Copy and run this script. Replace `YOUR_API_KEY` with your actual key.
 
 <CodeGroup>
 
@@ -50,21 +51,71 @@ API_KEY = "YOUR_API_KEY"
 BASE = "https://api.viggle.ai"
 headers = {"Authorization": f"Bearer {API_KEY}"}
 
-# Step 1: Start Render
-print("1. Starting render...")
+# Step 1: Create Character
+print("1. Creating character...")
+resp = requests.post(
+    f"{BASE}/api/characters/preprocess",
+    headers=headers,
+    files={"image": open("character.png", "rb")},
+    data={"name": "My Character"}
+)
+character = resp.json()
+character_id = character["id"]
+print(f"   Character ID: {character_id}")
+
+# Poll until ready
+while True:
+    status = requests.get(
+        f"{BASE}/api/characters/{character_id}",
+        headers=headers
+    ).json()
+    print(f"   Status: {status['status']}")
+    if status["status"] == "ready":
+        break
+    elif status["status"] == "failed":
+        raise Exception(f"Character failed: {status.get('error_message')}")
+    time.sleep(5)
+
+# Step 2: Create Scene
+print("2. Creating scene...")
+resp = requests.post(
+    f"{BASE}/api/scenes/preprocess",
+    headers=headers,
+    files={"video": open("dance.mp4", "rb")},
+    data={"name": "Dance Sequence"}
+)
+scene = resp.json()
+scene_id = scene["id"]
+print(f"   Scene ID: {scene_id}")
+
+# Poll until ready
+while True:
+    status = requests.get(
+        f"{BASE}/api/scenes/{scene_id}",
+        headers=headers
+    ).json()
+    print(f"   Status: {status['status']}")
+    if status["status"] == "ready":
+        break
+    elif status["status"] == "failed":
+        raise Exception(f"Scene failed: {status.get('error_message')}")
+    time.sleep(5)
+
+# Step 3: Start Render
+print("3. Starting render...")
 resp = requests.post(
     f"{BASE}/api/render",
     headers=headers,
     data={
-        "character_id": "char_xxx",
-        "scene_id": "scene_xxx"
+        "character_id": character_id,
+        "scene_id": scene_id
     }
 )
 job_id = resp.json()["job_id"]
 print(f"   Job ID: {job_id}")
 
-# Step 2: Poll status until complete (no auth needed for status)
-print("2. Waiting for render to complete...")
+# Step 4: Poll status until complete
+print("4. Waiting for render...")
 while True:
     status = requests.get(f"{BASE}/api/render/{job_id}").json()
     progress = status.get("progress", {})
@@ -80,8 +131,8 @@ while True:
 
     time.sleep(5)
 
-# Step 3: Download
-print("3. Downloading video...")
+# Step 5: Download
+print("5. Downloading video...")
 video = requests.get(
     f"{BASE}/api/render/{job_id}/download",
     headers=headers,
@@ -103,22 +154,62 @@ const headers = { "Authorization": `Bearer ${API_KEY}` };
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 async function main() {
-  // Step 1: Start Render
-  console.log("1. Starting render...");
-  const form = new URLSearchParams();
-  form.append("character_id", "char_xxx");
-  form.append("scene_id", "scene_xxx");
+  // Step 1: Create Character
+  console.log("1. Creating character...");
+  const charForm = new FormData();
+  charForm.append("name", "My Character");
+  charForm.append("image", fs.createReadStream("character.png"));
 
-  let resp = await fetch(`${BASE}/api/render`, {
-    method: "POST",
-    headers,
-    body: form
+  let resp = await fetch(`${BASE}/api/characters/preprocess`, {
+    method: "POST", headers, body: charForm
+  }).then(r => r.json());
+  const characterId = resp.id;
+  console.log(`   Character ID: ${characterId}`);
+
+  // Poll until ready
+  while (true) {
+    const status = await fetch(`${BASE}/api/characters/${characterId}`, { headers }).then(r => r.json());
+    console.log(`   Status: ${status.status}`);
+    if (status.status === "ready") break;
+    if (status.status === "failed") throw new Error(status.error_message);
+    await sleep(5000);
+  }
+
+  // Step 2: Create Scene
+  console.log("2. Creating scene...");
+  const sceneForm = new FormData();
+  sceneForm.append("name", "Dance Sequence");
+  sceneForm.append("video", fs.createReadStream("dance.mp4"));
+
+  resp = await fetch(`${BASE}/api/scenes/preprocess`, {
+    method: "POST", headers, body: sceneForm
+  }).then(r => r.json());
+  const sceneId = resp.id;
+  console.log(`   Scene ID: ${sceneId}`);
+
+  // Poll until ready
+  while (true) {
+    const status = await fetch(`${BASE}/api/scenes/${sceneId}`, { headers }).then(r => r.json());
+    console.log(`   Status: ${status.status}`);
+    if (status.status === "ready") break;
+    if (status.status === "failed") throw new Error(status.error_message);
+    await sleep(5000);
+  }
+
+  // Step 3: Start Render
+  console.log("3. Starting render...");
+  const renderForm = new URLSearchParams();
+  renderForm.append("character_id", characterId);
+  renderForm.append("scene_id", sceneId);
+
+  resp = await fetch(`${BASE}/api/render`, {
+    method: "POST", headers, body: renderForm
   }).then(r => r.json());
   const jobId = resp.job_id;
   console.log(`   Job ID: ${jobId}`);
 
-  // Step 2: Poll status until complete (no auth needed for status)
-  console.log("2. Waiting for render to complete...");
+  // Step 4: Poll status
+  console.log("4. Waiting for render...");
   while (true) {
     const status = await fetch(`${BASE}/api/render/${jobId}`).then(r => r.json());
     const completed = status.progress?.completed_chunks ?? 0;
@@ -133,8 +224,8 @@ async function main() {
     await sleep(5000);
   }
 
-  // Step 3: Download
-  console.log("3. Downloading video...");
+  // Step 5: Download
+  console.log("5. Downloading video...");
   const video = await fetch(`${BASE}/api/render/${jobId}/download`, { headers });
   fs.writeFileSync("output.mp4", Buffer.from(await video.arrayBuffer()));
   console.log("Done! Saved to output.mp4");
@@ -145,21 +236,20 @@ main().catch(console.error);
 
 </CodeGroup>
 
-<Note>
-  **Prerequisites**: You need a preprocessed character ID and scene ID from the Viggle platform.
-</Note>
-
 ## Core Concepts
 
 <CardGroup cols={2}>
+  <Card title="Characters" icon="user" href="/api-reference/characters/create">
+    Upload a reference image to create a reusable character.
+  </Card>
+  <Card title="Scenes" icon="film" href="/api-reference/scenes/create">
+    Upload a driving video to extract motion data.
+  </Card>
   <Card title="Render Jobs" icon="video" href="/api-reference/render/create">
     Combine characters and scenes to generate animated videos. Supports single and multi-character renders.
   </Card>
   <Card title="Multi-Person" icon="users" href="/api-reference/render/multi-character">
     Map different avatars to each tracked person in a multi-person template scene.
-  </Card>
-  <Card title="Cancel Jobs" icon="xmark" href="/api-reference/render/cancel">
-    Cancel running jobs or delete completed ones to free resources.
   </Card>
 </CardGroup>
 
@@ -185,7 +275,7 @@ Use the **Status endpoint** (no auth required) to check progress and download th
 
 <CardGroup cols={2}>
   <Card title="Quickstart" icon="rocket" href="/guides/quickstart">
-    Render your first video in minutes
+    Create a character, scene, and render your first video
   </Card>
   <Card title="Compositing" icon="layer-group" href="/guides/compositing">
     Use transparent mode + mask for professional compositing

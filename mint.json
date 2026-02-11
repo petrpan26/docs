@@ -53,6 +53,25 @@
       ]
     },
     {
+      "group": "Characters",
+      "pages": [
+        "api-reference/characters/create",
+        "api-reference/characters/list",
+        "api-reference/characters/get",
+        "api-reference/characters/delete"
+      ]
+    },
+    {
+      "group": "Scenes",
+      "pages": [
+        "api-reference/scenes/create",
+        "api-reference/scenes/list",
+        "api-reference/scenes/get",
+        "api-reference/scenes/delete",
+        "api-reference/scenes/import"
+      ]
+    },
+    {
       "group": "Render",
       "pages": [
         "api-reference/render/overview",
