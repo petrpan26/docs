@@ -106,6 +106,10 @@ while (true) {
 
 Upload a driving video to extract motion data. The scene can be reused with different characters. **Costs 1 credit per second of video.**
 
+<Tip>
+  **Don't have a driving video?** You can [import a template from viggle.ai](/guides/import-templates) instead of uploading your own.
+</Tip>
+
 <CodeGroup>
 
 ```python Python
@@ -321,6 +325,9 @@ scenes = requests.get(f"{BASE}/api/scenes", headers=headers).json()
 <CardGroup cols={2}>
   <Card title="Render Options" icon="sliders" href="/render-options">
     Customize background mode, resolution, frame rate, and more
+  </Card>
+  <Card title="Import Templates" icon="download" href="/guides/import-templates">
+    Find and import templates from viggle.ai
   </Card>
   <Card title="Compositing Guide" icon="layer-group" href="/guides/compositing">
     Use transparent mode + mask for professional compositing
