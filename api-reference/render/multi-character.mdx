@@ -107,7 +107,7 @@ const characterMapping = {
 const form = new URLSearchParams();
 form.append("scene_id", "scene_770e8400e29b41d4");
 form.append("character_mapping", JSON.stringify(characterMapping));
-form.append("background_mode", "inpaint");
+form.append("background_mode", "inpainted");
 
 const response = await fetch("https://apis.viggle.ai/api/render", {
   method: "POST",

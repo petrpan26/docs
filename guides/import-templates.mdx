@@ -1,0 +1,294 @@
+---
+title: 'Import Templates from Viggle'
+description: 'Find template IDs on viggle.ai and import them into the API for rendering'
+---
+
+Instead of uploading your own videos, you can import pre-made templates directly from [viggle.ai](https://viggle.ai). Templates come in two types:
+
+- **Video templates** — Single-person scenes for single-character rendering
+- **Multi-person templates** — Scenes with tracked segments for multi-character rendering
+
+This guide walks through finding template IDs on viggle.ai and importing them via the API.
+
+## Finding Video Template IDs
+
+Video templates are single-person scenes available on the viggle.ai homepage. Use these with [Create Render Job](/api-reference/render/create) for single-character rendering.
+
+<Steps>
+  <Step title="Browse templates on viggle.ai">
+    Go to [viggle.ai](https://viggle.ai) and browse the **Hot Picks** section on the homepage. Click on any template to open it.
+
+    <Frame>
+      <img src="/images/import-guide/step1-hot-picks.png" alt="Viggle homepage showing Hot Picks templates" />
+    </Frame>
+  </Step>
+  <Step title="Copy the template ID">
+    On the template detail page, click the **copy icon** next to the template title to copy the template ID to your clipboard.
+
+    <Frame>
+      <img src="/images/import-guide/step2-copy-template-id.png" alt="Template detail page with copy ID button" />
+    </Frame>
+  </Step>
+</Steps>
+
+## Finding Multi-Person Template IDs
+
+Multi-person templates contain tracked segments for each person in the video. Use these with [Multi-Character Render](/api-reference/render/multi-character) to map different avatars to each person.
+
+<Steps>
+  <Step title="Open Multi-Track">
+    Click **Multi-Track** in the left sidebar to open the multi-person template editor.
+
+    <Frame>
+      <img src="/images/import-guide/step3-multi-track.png" alt="Multi-Track page in the sidebar" />
+    </Frame>
+  </Step>
+  <Step title="Switch to Legacy Editor">
+    Click the **Editor** button under "Legacy Version" in the top-right corner of the Multi-Track page.
+
+    <Frame>
+      <img src="/images/import-guide/step4-legacy-editor.png" alt="Click Legacy Editor button" />
+    </Frame>
+  </Step>
+  <Step title="Create or select a template">
+    In the legacy editor, click **Create** to start a new multi-person template, or select an existing one from **My Templates**.
+
+    <Frame>
+      <img src="/images/import-guide/step5-create-template.png" alt="Legacy editor with Create button and My Templates" />
+    </Frame>
+  </Step>
+  <Step title="Copy the template ID">
+    Once the template is processed with person tracking, click the **Copy ID** button below the video preview to copy the multi-person template ID.
+
+    <Frame>
+      <img src="/images/import-guide/step6-copy-id.png" alt="Copy ID button in the template editor" />
+    </Frame>
+  </Step>
+</Steps>
+
+## Importing via the API
+
+Once you have a template ID, use the [Import Template](/api-reference/scenes/import) endpoint to create a scene in your API account.
+
+### Import a Video Template
+
+<CodeGroup>
+
+```python Python
+import requests
+
+API_KEY = "YOUR_API_KEY"
+BASE = "https://apis.viggle.ai"
+headers = {
+    "Authorization": f"Bearer {API_KEY}",
+    "Content-Type": "application/json"
+}
+
+# Import a video template (single-person)
+response = requests.post(
+    f"{BASE}/api/scenes/import",
+    headers=headers,
+    json={
+        "template_id": "YOUR_TEMPLATE_ID",
+        "name": "My Imported Scene"
+    }
+)
+scene = response.json()
+scene_id = scene["id"]
+print(f"Scene ID: {scene_id}")
+print(f"Segments: {scene.get('segments', [])}")
+# Segments will be empty for video templates
+```
+
+```bash cURL
+curl -X POST "https://apis.viggle.ai/api/scenes/import" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "template_id": "YOUR_TEMPLATE_ID",
+    "name": "My Imported Scene"
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch("https://apis.viggle.ai/api/scenes/import", {
+  method: "POST",
+  headers: {
+    "Authorization": `Bearer ${API_KEY}`,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    template_id: "YOUR_TEMPLATE_ID",
+    name: "My Imported Scene"
+  })
+});
+const scene = await response.json();
+console.log(`Scene ID: ${scene.id}`);
+```
+
+</CodeGroup>
+
+### Import a Multi-Person Template
+
+<CodeGroup>
+
+```python Python
+import requests
+import json
+
+API_KEY = "YOUR_API_KEY"
+BASE = "https://apis.viggle.ai"
+headers = {
+    "Authorization": f"Bearer {API_KEY}",
+    "Content-Type": "application/json"
+}
+
+# Import a multi-person template
+response = requests.post(
+    f"{BASE}/api/scenes/import",
+    headers=headers,
+    json={
+        "template_id": "YOUR_MULTI_PERSON_TEMPLATE_ID",
+        "name": "Group Dance"
+    }
+)
+scene = response.json()
+scene_id = scene["id"]
+
+# Print the segment UUIDs (one per tracked person)
+print(f"Scene ID: {scene_id}")
+for segment in scene["segments"]:
+    print(f"  Person: {segment['uuid']} (type: {segment['type']})")
+```
+
+```bash cURL
+curl -X POST "https://apis.viggle.ai/api/scenes/import" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "template_id": "YOUR_MULTI_PERSON_TEMPLATE_ID",
+    "name": "Group Dance"
+  }'
+```
+
+</CodeGroup>
+
+## Rendering with Imported Templates
+
+### Single-Character Render
+
+For video templates (no segments), use the scene with a character ID:
+
+```python
+# Render with imported video template
+job = requests.post(
+    f"{BASE}/api/render",
+    headers={"Authorization": f"Bearer {API_KEY}"},
+    data={
+        "character_id": "YOUR_CHARACTER_ID",
+        "scene_id": scene_id,
+        "background_mode": "inpainted"
+    }
+).json()
+print(f"Job ID: {job['job_id']}")
+```
+
+### Multi-Character Render
+
+For multi-person templates, map each segment UUID to a different character:
+
+```python
+# Map each tracked person to a character avatar
+character_mapping = {}
+for segment in scene["segments"]:
+    # Assign characters to each person
+    character_mapping[segment["uuid"]] = "YOUR_CHARACTER_ID"
+
+# Start the multi-character render
+job = requests.post(
+    f"{BASE}/api/render",
+    headers={"Authorization": f"Bearer {API_KEY}"},
+    data={
+        "scene_id": scene_id,
+        "character_mapping": json.dumps(character_mapping),
+        "background_mode": "inpainted"
+    }
+).json()
+print(f"Job ID: {job['job_id']}")
+```
+
+## Complete Example
+
+End-to-end workflow: find a multi-person template on viggle.ai, import it, and render with different characters.
+
+```python
+import requests
+import json
+import time
+
+API_KEY = "YOUR_API_KEY"
+BASE = "https://apis.viggle.ai"
+headers = {"Authorization": f"Bearer {API_KEY}"}
+
+# 1. Import multi-person template (ID copied from viggle.ai)
+scene = requests.post(
+    f"{BASE}/api/scenes/import",
+    headers={**headers, "Content-Type": "application/json"},
+    json={"template_id": "TEMPLATE_ID_FROM_VIGGLE"}
+).json()
+scene_id = scene["id"]
+segments = scene["segments"]
+print(f"Imported scene: {scene_id} ({len(segments)} people)")
+
+# 2. Map each person to a character
+my_characters = ["char_alice_id", "char_bob_id", "char_carol_id"]
+character_mapping = {}
+for i, segment in enumerate(segments):
+    if i < len(my_characters):
+        character_mapping[segment["uuid"]] = my_characters[i]
+
+# 3. Start render
+job = requests.post(
+    f"{BASE}/api/render",
+    headers=headers,
+    data={
+        "scene_id": scene_id,
+        "character_mapping": json.dumps(character_mapping),
+        "background_mode": "inpainted",
+        "resolution": "HD"
+    }
+).json()
+print(f"Render started: {job['job_id']}")
+
+# 4. Wait for completion
+while True:
+    status = requests.get(f"{BASE}/api/render/{job['job_id']}").json()
+    progress = status.get("progress", {})
+    print(f"  {progress.get('completed_chunks', 0)}/{progress.get('total_chunks', '?')} chunks")
+
+    if status["status"] == "complete":
+        break
+    elif status["status"] == "failed":
+        raise Exception(status.get("error"))
+    time.sleep(5)
+
+# 5. Download
+video = requests.get(f"{BASE}/api/render/{job['job_id']}/download", headers=headers)
+with open("output.mp4", "wb") as f:
+    f.write(video.content)
+print("Saved output.mp4")
+```
+
+## Tips
+
+<AccordionGroup>
+  <Accordion title="Video template vs multi-person template">
+    If the import response has an empty `segments` array, you have a **video template** — use it with `character_id` for single-character rendering. If `segments` contains entries, you have a **multi-person template** — use it with `character_mapping` for multi-character rendering.
+  </Accordion>
+  <Accordion title="Partial character mapping">
+    You don't need to map every person in a multi-person template. Unmapped people keep their original appearance in the video.
+  </Accordion>
+  <Accordion title="Reusing imported scenes">
+    Once imported, a scene is saved to your account and can be reused across multiple renders without re-importing.
+  </Accordion>
+</AccordionGroup>

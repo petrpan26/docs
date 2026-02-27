@@ -47,6 +47,7 @@
       "group": "Guides",
       "pages": [
         "guides/quickstart",
+        "guides/import-templates",
         "guides/compositing",
         "guides/live-render",
         "guides/batch-processing"
