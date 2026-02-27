@@ -22,24 +22,40 @@ Parameters are sent as form fields (not JSON).
   ID of a ready scene.
 </ParamField>
 
-<ParamField body="model" type="string" default="V4">
-  Rendering model. Currently only `V4` is available.
+<ParamField body="model" type="string" default="V4_Preview">
+  Rendering model. Currently only `V4_Preview` is available.
 </ParamField>
 
-<ParamField body="background_mode" type="string" default="inpaint">
-  `inpaint`, `original`, `solid`, or `transparent`
+<ParamField body="background_mode" type="string" default="inpainted">
+  `inpainted`, `original`, `solid`, or `transparent`
 </ParamField>
 
 <ParamField body="bg_color" type="string">
   RGB string for solid background, e.g., `"0,255,0"`. Only used when `background_mode` is `solid`.
 </ParamField>
 
-<ParamField body="resolution" type="string" default="original">
-  Output resolution: `original`, `720p`, or `1080p`.
+<ParamField body="resolution" type="string" default="SD">
+  Output resolution: `SD` or `HD`.
 </ParamField>
 
 <ParamField body="fast" type="boolean" default="false">
   Enable fast mode for faster rendering.
+</ParamField>
+
+<ParamField body="output_fps" type="integer">
+  Output video frame rate (1-60). Optional — if not set, uses the scene's native FPS.
+</ParamField>
+
+<ParamField body="mask_dilation" type="integer" default="12">
+  Mask edge dilation in pixels (0-50). Controls how far the character mask extends beyond detected edges.
+</ParamField>
+
+<ParamField body="ref_image" type="file">
+  Character image file for on-demand render (PNG, JPG). Use instead of `character_id` to skip preprocessing.
+</ParamField>
+
+<ParamField body="driving_video" type="file">
+  Driving video for on-demand render (MP4). Use instead of `scene_id` to skip preprocessing.
 </ParamField>
 
 ## Response
@@ -52,6 +68,14 @@ Parameters are sent as form fields (not JSON).
   Initial status will be `queued`
 </ResponseField>
 
+<ResponseField name="poll_url" type="string">
+  URL to poll for live render chunks (e.g., `/api/render/{job_id}/poll`)
+</ResponseField>
+
+<ResponseField name="status_url" type="string">
+  URL to check job status (e.g., `/api/render/{job_id}`)
+</ResponseField>
+
 <RequestExample>
 
 ```bash cURL
@@ -59,7 +83,7 @@ curl -X POST "https://apis.viggle.ai/api/render" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -d "character_id=char_550e8400e29b41d4" \
   -d "scene_id=scene_660e8400e29b41d4" \
-  -d "background_mode=inpaint"
+  -d "background_mode=inpainted"
 ```
 
 ```python Python
@@ -71,7 +95,7 @@ response = requests.post(
     data={
         "character_id": "char_550e8400e29b41d4",
         "scene_id": "scene_660e8400e29b41d4",
-        "background_mode": "inpaint"
+        "background_mode": "inpainted"
     }
 )
 job = response.json()
@@ -100,11 +124,17 @@ console.log(`Job ID: ${job.job_id}`);
 ```json 200
 {
   "job_id": "job_abc123xyz",
-  "status": "queued"
+  "status": "queued",
+  "poll_url": "/api/render/job_abc123xyz/poll",
+  "status_url": "/api/render/job_abc123xyz"
 }
 ```
 
 </ResponseExample>
+
+<Note>
+  **On-Demand Mode**: Instead of pre-creating character and scene assets, you can upload `ref_image` and `driving_video` directly as files. This skips preprocessing and renders in a single request — useful for one-off renders where you don't need to reuse assets.
+</Note>
 
 ## Next Steps
 

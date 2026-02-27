@@ -32,20 +32,20 @@ Parameters are sent as form fields (`multipart/form-data`).
   ```
 </ParamField>
 
-<ParamField body="model" type="string" default="V4">
-  Rendering model. Currently only `V4` is available.
+<ParamField body="model" type="string" default="V4_Preview">
+  Rendering model. Currently only `V4_Preview` is available.
 </ParamField>
 
-<ParamField body="background_mode" type="string" default="inpaint">
-  `inpaint`, `original`, `solid`, or `transparent`
+<ParamField body="background_mode" type="string" default="inpainted">
+  `inpainted`, `original`, `solid`, or `transparent`
 </ParamField>
 
 <ParamField body="bg_color" type="string">
   RGB string for solid background, e.g., `"0,255,0"`. Only used when `background_mode` is `solid`.
 </ParamField>
 
-<ParamField body="resolution" type="string" default="original">
-  Output resolution: `original`, `720p`, or `1080p`.
+<ParamField body="resolution" type="string" default="SD">
+  Output resolution: `SD` or `HD`.
 </ParamField>
 
 <ParamField body="fast" type="boolean" default="false">
@@ -70,7 +70,7 @@ curl -X POST "https://apis.viggle.ai/api/render" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -d "scene_id=scene_770e8400e29b41d4" \
   -d 'character_mapping={"person_a1b2c3d4":"char_alice","person_e5f6g7h8":"char_bob","person_i9j0k1l2":"char_carol"}' \
-  -d "background_mode=inpaint"
+  -d "background_mode=inpainted"
 ```
 
 ```python Python
@@ -90,7 +90,7 @@ response = requests.post(
     data={
         "scene_id": "scene_770e8400e29b41d4",
         "character_mapping": json.dumps(character_mapping),
-        "background_mode": "inpaint"
+        "background_mode": "inpainted"
     }
 )
 job = response.json()
@@ -180,7 +180,7 @@ curl -X POST "https://apis.viggle.ai/api/render" \
         data={
             "scene_id": scene_id,
             "character_mapping": json.dumps(character_mapping),
-            "background_mode": "inpaint"
+            "background_mode": "inpainted"
         }
     ).json()
     ```

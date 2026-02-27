@@ -36,7 +36,7 @@ job = requests.post(f"{BASE}/api/render", headers=headers, data={
     "character_id": "char_xxx",
     "scene_id": "scene_xxx",
     "background_mode": "transparent",
-    "resolution": "1080p",
+    "resolution": "HD",
 }).json()
 
 print(f"Job ID: {job['job_id']}")
@@ -48,7 +48,7 @@ curl -X POST "https://apis.viggle.ai/api/render" \
   -d "character_id=char_xxx" \
   -d "scene_id=scene_xxx" \
   -d "background_mode=transparent" \
-  -d "resolution=1080p"
+  -d "resolution=HD"
 ```
 
 </CodeGroup>
@@ -190,7 +190,7 @@ print("Ready for compositing!")
 
 <AccordionGroup>
   <Accordion title="Use 1080p for best compositing quality">
-    Set `resolution=1080p` to get the highest quality output for compositing workflows where detail matters.
+    Set `resolution=HD` to get the highest quality output for compositing workflows where detail matters.
   </Accordion>
 
   <Accordion title="Green screen alternative">

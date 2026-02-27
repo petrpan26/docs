@@ -23,7 +23,7 @@ Check job status. Returns immediately. Poll every 5 seconds until `complete` or 
 </ResponseField>
 
 <ResponseField name="status" type="string">
-  Current status: `queued`, `processing`, `rendering`, `complete`, or `failed`
+  Current status: `queued`, `processing`, `rendering`, `merging`, `complete`, or `failed`
 </ResponseField>
 
 <ResponseField name="progress" type="object">
@@ -67,8 +67,20 @@ Check job status. Returns immediately. Poll every 5 seconds until `complete` or 
   URL to download the mask video. Only present when `background_mode=transparent` was used and job is `complete`.
 </ResponseField>
 
+<ResponseField name="download_url" type="string">
+  URL to download the completed video (available when status is `complete`)
+</ResponseField>
+
 <ResponseField name="error" type="string">
   Error message (when status is `failed`)
+</ResponseField>
+
+<ResponseField name="created_at" type="string">
+  ISO 8601 timestamp when the job was created
+</ResponseField>
+
+<ResponseField name="completed_at" type="string">
+  ISO 8601 timestamp when the job completed (null while in progress)
 </ResponseField>
 
 <RequestExample>
@@ -149,12 +161,15 @@ async function waitForComplete() {
     "percent": 60.0
   },
   "cdn_url": null,
+  "download_url": null,
   "chunks": [
     { "chunk_id": 0, "cdn_url": "https://assets.viggle.ai/chunks/..." },
     { "chunk_id": 1, "cdn_url": "https://assets.viggle.ai/chunks/..." },
     { "chunk_id": 2, "cdn_url": "https://assets.viggle.ai/chunks/..." }
   ],
-  "error": null
+  "error": null,
+  "created_at": "2025-01-15T10:30:00Z",
+  "completed_at": null
 }
 ```
 

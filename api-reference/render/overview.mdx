@@ -34,9 +34,10 @@ Jobs progress through the following statuses:
 graph LR
     A[queued] --> B[processing]
     B --> C[rendering]
-    C --> D[complete]
-    C --> E[failed]
-    B --> E
+    C --> D[merging]
+    D --> E[complete]
+    C --> F[failed]
+    B --> F
 ```
 
 | Status | Description |
@@ -44,6 +45,7 @@ graph LR
 | `queued` | Job is waiting in the queue |
 | `processing` | Job is being prepared |
 | `rendering` | Video frames are being generated |
+| `merging` | All chunks rendered, final video is being assembled |
 | `complete` | Video is ready for download |
 | `failed` | Job failed (check `error` field) |
 

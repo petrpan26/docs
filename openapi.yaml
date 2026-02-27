@@ -29,7 +29,7 @@ components:
           example: My Character
         status:
           type: string
-          enum: [pending, ready, failed]
+          enum: [pending, processing, ready, failed]
         job_id:
           type: string
           nullable: true
@@ -78,7 +78,7 @@ components:
           type: string
         status:
           type: string
-          enum: [pending, ready, failed]
+          enum: [pending, processing, ready, failed]
         created_at:
           type: string
           format: date-time
@@ -220,7 +220,7 @@ components:
           example: job_abc123xyz
         status:
           type: string
-          enum: [queued, processing, rendering, complete, failed]
+          enum: [queued, processing, rendering, merging, complete, failed]
         progress:
           type: object
           properties:
@@ -236,6 +236,11 @@ components:
           format: uri
           nullable: true
           description: CDN URL to download complete video (when status is complete)
+        download_url:
+          type: string
+          format: uri
+          nullable: true
+          description: URL to download the completed video
         mask_cdn_url:
           type: string
           format: uri
@@ -259,6 +264,16 @@ components:
         error:
           type: string
           nullable: true
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Timestamp when the job was created
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Timestamp when the job completed
 
     RenderCreated:
       type: object
@@ -269,6 +284,14 @@ components:
         status:
           type: string
           example: queued
+        poll_url:
+          type: string
+          description: URL to poll for live render chunks
+          example: /api/render/job_abc123xyz/poll
+        status_url:
+          type: string
+          description: URL to check job status
+          example: /api/render/job_abc123xyz
 
     RenderDeleted:
       type: object
@@ -285,7 +308,7 @@ components:
       properties:
         status:
           type: string
-          enum: [queued, processing, rendering, complete, failed]
+          enum: [queued, processing, rendering, merging, complete, failed]
         new_chunks:
           type: array
           items:
@@ -296,15 +319,12 @@ components:
               cdn_url:
                 type: string
                 format: uri
-        progress:
-          type: object
-          properties:
-            completed_chunks:
-              type: integer
-            total_chunks:
-              type: integer
-        queue_position:
+        completed_chunks:
           type: integer
+          description: Number of completed chunks
+        total_chunks:
+          type: integer
+          description: Total number of chunks
         cdn_url:
           type: string
           format: uri
@@ -580,8 +600,8 @@ paths:
 
   /api/scenes/import:
     post:
-      summary: Import Multi-Person Template
-      description: Import a multi-person scene from a Viggle template. Returns segment UUIDs for use in multi-character render.
+      summary: Import Template
+      description: Import a scene from a Viggle template. Supports multi-person templates (with tracked segments for multi-character render) and video templates (plain video for single-character render).
       operationId: importScene
       tags:
         - Scenes
@@ -598,7 +618,7 @@ paths:
               properties:
                 template_id:
                   type: string
-                  description: Viggle multi-person template UUID
+                  description: Viggle template UUID (multi-person or video template)
                   example: template_uuid
                 name:
                   type: string
@@ -755,13 +775,13 @@ paths:
                   example: '{"person_a1b2c3d4": "char_alice", "person_e5f6g7h8": "char_bob"}'
                 model:
                   type: string
-                  enum: [V4]
-                  default: V4
-                  description: Rendering model. Currently only V4 is available.
+                  enum: [V4_Preview]
+                  default: V4_Preview
+                  description: Rendering model. Currently only V4_Preview is available.
                 background_mode:
                   type: string
-                  enum: [inpaint, original, solid, transparent]
-                  default: inpaint
+                  enum: [inpainted, original, solid, transparent]
+                  default: inpainted
                   description: Background handling mode
                 bg_color:
                   type: string
@@ -769,13 +789,29 @@ paths:
                   example: '0,255,0'
                 resolution:
                   type: string
-                  enum: [original, 720p, 1080p]
-                  default: original
+                  enum: [SD, HD]
+                  default: SD
                   description: Output resolution
                 fast:
                   type: boolean
                   default: false
                   description: Enable fast mode for faster rendering
+                output_fps:
+                  type: integer
+                  nullable: true
+                  description: Output FPS (1-60)
+                mask_dilation:
+                  type: integer
+                  default: 12
+                  description: Mask dilation (0-50)
+                ref_image:
+                  type: string
+                  format: binary
+                  description: Character image file for on-demand render (PNG, JPG)
+                driving_video:
+                  type: string
+                  format: binary
+                  description: Driving video for on-demand render (MP4)
       responses:
         '200':
           description: Render job created
@@ -904,6 +940,49 @@ paths:
                 $ref: '#/components/schemas/PollResponse'
         '401':
           description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/render/{job_id}/chunks/{chunk_id}.mp4:
+    get:
+      summary: Download Chunk
+      description: Download an individual rendered chunk as an MP4 file. Authentication required.
+      operationId: downloadRenderChunk
+      tags:
+        - Render
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: job_abc123xyz
+        - name: chunk_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 0
+      responses:
+        '200':
+          description: Chunk MP4 file
+          content:
+            video/mp4:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Chunk not found
           content:
             application/json:
               schema:

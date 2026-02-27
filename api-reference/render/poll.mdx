@@ -29,7 +29,7 @@ Long-poll for new video chunks. Blocks until chunks are ready, job completes, or
 ## Response
 
 <ResponseField name="status" type="string">
-  Current job status: `queued`, `processing`, `rendering`, `complete`, or `failed`
+  Current job status: `queued`, `processing`, `rendering`, `merging`, `complete`, or `failed`
 </ResponseField>
 
 <ResponseField name="new_chunks" type="array">
@@ -45,21 +45,12 @@ Long-poll for new video chunks. Blocks until chunks are ready, job completes, or
   </Expandable>
 </ResponseField>
 
-<ResponseField name="progress" type="object">
-  Rendering progress
-
-  <Expandable title="Progress object">
-    <ResponseField name="completed_chunks" type="integer">
-      Number of completed chunks
-    </ResponseField>
-    <ResponseField name="total_chunks" type="integer">
-      Total number of chunks
-    </ResponseField>
-  </Expandable>
+<ResponseField name="completed_chunks" type="integer">
+  Number of completed chunks
 </ResponseField>
 
-<ResponseField name="queue_position" type="integer">
-  Position in queue (when status is `queued`)
+<ResponseField name="total_chunks" type="integer">
+  Total number of chunks
 </ResponseField>
 
 <ResponseField name="cdn_url" type="string">
@@ -147,16 +138,17 @@ while (true) {
     { "chunk_id": 0, "cdn_url": "https://assets.viggle.ai/chunks/..." },
     { "chunk_id": 1, "cdn_url": "https://assets.viggle.ai/chunks/..." }
   ],
-  "progress": { "completed_chunks": 2, "total_chunks": 5 }
+  "completed_chunks": 2,
+  "total_chunks": 5
 }
 ```
 
 ```json Queued
 {
   "status": "queued",
-  "queue_position": 3,
   "new_chunks": [],
-  "progress": { "completed_chunks": 0, "total_chunks": 5 }
+  "completed_chunks": 0,
+  "total_chunks": 5
 }
 ```
 
@@ -164,7 +156,8 @@ while (true) {
 {
   "status": "complete",
   "new_chunks": [],
-  "progress": { "completed_chunks": 5, "total_chunks": 5 },
+  "completed_chunks": 5,
+  "total_chunks": 5,
   "cdn_url": "https://assets.viggle.ai/videos/..."
 }
 ```

@@ -7,16 +7,16 @@ Configure video generation by passing form fields when creating a render job via
 
 ## Available Options
 
-<ParamField body="model" type="string" default="V4">
-  The rendering model. Currently only `V4` is available.
+<ParamField body="model" type="string" default="V4_Preview">
+  The rendering model. Currently only `V4_Preview` is available.
 </ParamField>
 
-<ParamField body="background_mode" type="string" default="inpaint">
+<ParamField body="background_mode" type="string" default="inpainted">
   Background handling mode.
 
   | Value | Description |
   |-------|-------------|
-  | `inpaint` | AI fills the background intelligently (default) |
+  | `inpainted` | AI fills the background intelligently (default) |
   | `original` | Keep the original video background |
   | `solid` | Replace with solid color (use with `bg_color`) |
   | `transparent` | Transparent background with separate mask video for compositing |
@@ -32,14 +32,13 @@ Configure video generation by passing form fields when creating a render job via
   ```
 </ParamField>
 
-<ParamField body="resolution" type="string" default="original">
-  Output resolution. Use `original` to match the input, or specify a target like `720p` or `1080p`.
+<ParamField body="resolution" type="string" default="SD">
+  Output resolution.
 
   | Value | Description |
   |-------|-------------|
-  | `original` | Match input video resolution (default) |
-  | `720p` | 1280x720 |
-  | `1080p` | 1920x1080 |
+  | `SD` | Standard definition (default) |
+  | `HD` | High definition |
 </ParamField>
 
 <ParamField body="fast" type="boolean" default="false">
@@ -48,6 +47,14 @@ Configure video generation by passing form fields when creating a render job via
   <Warning>
     Fast mode requires available capacity. If capacity is unavailable, you'll receive a `503` error. Either retry with `fast=false` or wait for capacity.
   </Warning>
+</ParamField>
+
+<ParamField body="output_fps" type="integer">
+  Output video frame rate (1-60). Optional — if not set, uses the scene's native FPS.
+</ParamField>
+
+<ParamField body="mask_dilation" type="integer" default="12">
+  Mask edge dilation in pixels (0-50). Controls how far the character mask extends beyond detected edges. Higher values create a softer boundary.
 </ParamField>
 
 ## Example Usage
@@ -61,7 +68,7 @@ curl -X POST "https://apis.viggle.ai/api/render" \
   -d "scene_id=scene_xxx"
 ```
 
-Uses default inpaint background.
+Uses default inpainted background.
 
 ### Green Screen
 
@@ -101,14 +108,14 @@ curl -X POST "https://apis.viggle.ai/api/render" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -d "character_id=char_xxx" \
   -d "scene_id=scene_xxx" \
-  -d "resolution=1080p"
+  -d "resolution=HD"
 ```
 
 ## Background Mode Comparison
 
 | Mode | Use Case | Output |
 |------|----------|--------|
-| `inpaint` | General use, social media | AI-generated background that matches the scene |
+| `inpainted` | General use, social media | AI-generated background that matches the scene |
 | `original` | Keep scene context | Original video background preserved |
 | `solid` | Green screen, compositing | Solid color background for easy keying |
 | `transparent` | Professional compositing | Black background video + separate mask video for layering in video editors |
@@ -117,7 +124,7 @@ curl -X POST "https://apis.viggle.ai/api/render" \
 
 <AccordionGroup>
   <Accordion title="Background selection">
-    - Use **inpaint** when you want a complete, ready-to-share video
+    - Use **inpainted** when you want a complete, ready-to-share video
     - Use **original** when the scene context is important
     - Use **solid** or **transparent** when compositing in video editors
   </Accordion>
@@ -132,6 +139,6 @@ curl -X POST "https://apis.viggle.ai/api/render" \
 
   <Accordion title="Performance optimization">
     - Enable **fast** mode for time-sensitive renders when capacity is available
-    - Use **720p** resolution for faster renders when full resolution isn't needed
+    - Use **SD** resolution for faster renders when full resolution isn't needed
   </Accordion>
 </AccordionGroup>
