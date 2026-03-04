@@ -50,6 +50,7 @@
         "guides/import-templates",
         "guides/compositing",
         "guides/live-render",
+        "guides/fmp4-format",
         "guides/batch-processing"
       ]
     },

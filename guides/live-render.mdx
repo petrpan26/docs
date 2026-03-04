@@ -117,16 +117,42 @@ while (true) {
 
 </CodeGroup>
 
-## Progressive Playback in Browser
+## Progressive Playback with fMP4 + MSE
 
-Play chunks sequentially using MediaSource API for seamless progressive playback:
+Each chunk is a **fragmented MP4** (fMP4) file with `empty_moov` + `moof`/`mdat` fragment pairs. This means chunks can be fed directly into the browser's [Media Source Extensions (MSE)](https://developer.mozilla.org/en-US/docs/Web/API/Media_Source_Extensions_API) API for seamless, gapless playback as they arrive.
+
+<Info>
+  See [fMP4 Format Specification](/guides/fmp4-format) for details on the chunk file structure.
+</Info>
+
+### Poll-Based MSE Player
 
 ```javascript
-const videoEl = document.getElementById('preview');
+const video = document.getElementById("player");
+const mime = 'video/mp4; codecs="avc1.64001f"'; // Use "avc1.640028" for HD
 
-async function streamRender(jobId) {
-  const headers = { "Authorization": `Bearer ${API_KEY}` };
+async function streamWithMSE(jobId) {
+  const headers = { Authorization: `Bearer ${API_KEY}` };
+  const mediaSource = new MediaSource();
+  video.src = URL.createObjectURL(mediaSource);
+
+  await new Promise(r => mediaSource.addEventListener("sourceopen", r, { once: true }));
+  const sourceBuffer = mediaSource.addSourceBuffer(mime);
+
   let lastChunk = -1;
+  const queue = [];
+  let appending = false;
+
+  function drainQueue() {
+    if (appending || queue.length === 0) return;
+    appending = true;
+    sourceBuffer.appendBuffer(queue.shift());
+  }
+
+  sourceBuffer.addEventListener("updateend", () => {
+    appending = false;
+    drainQueue();
+  });
 
   while (true) {
     const resp = await fetch(
@@ -134,20 +160,29 @@ async function streamRender(jobId) {
       { headers }
     ).then(r => r.json());
 
-    // Download and queue each chunk for playback
     for (const chunk of resp.new_chunks) {
-      const chunkData = await fetch(chunk.cdn_url).then(r => r.blob());
-      const url = URL.createObjectURL(chunkData);
-
-      // Append to playlist or update source
+      const buf = await fetch(chunk.cdn_url).then(r => r.arrayBuffer());
+      queue.push(buf);
+      drainQueue();
       lastChunk = Math.max(lastChunk, chunk.chunk_id);
     }
 
+    // Auto-play once first chunk is buffered
+    if (video.paused && sourceBuffer.buffered.length > 0) {
+      video.play();
+    }
+
     if (resp.status === "complete") {
-      // Switch to final merged video for clean playback
-      videoEl.src = resp.cdn_url;
+      // Wait for queue to drain, then signal end of stream
+      const waitDrain = () => new Promise(r => {
+        const check = () => (queue.length === 0 && !appending) ? r() : setTimeout(check, 50);
+        check();
+      });
+      await waitDrain();
+      mediaSource.endOfStream();
       break;
     }
+
     if (resp.status === "failed") {
       console.error("Render failed:", resp.error);
       break;
@@ -155,6 +190,102 @@ async function streamRender(jobId) {
   }
 }
 ```
+
+### WebSocket MSE Player
+
+For lower latency, use the WebSocket endpoint to receive chunk notifications as push events instead of polling:
+
+```javascript
+async function streamWithWebSocket(jobId) {
+  const mediaSource = new MediaSource();
+  video.src = URL.createObjectURL(mediaSource);
+
+  await new Promise(r => mediaSource.addEventListener("sourceopen", r, { once: true }));
+  const sourceBuffer = mediaSource.addSourceBuffer(mime);
+
+  const queue = [];
+  let appending = false;
+
+  function drainQueue() {
+    if (appending || queue.length === 0) return;
+    appending = true;
+    sourceBuffer.appendBuffer(queue.shift());
+  }
+  sourceBuffer.addEventListener("updateend", () => {
+    appending = false;
+    drainQueue();
+  });
+
+  const ws = new WebSocket(`wss://${location.host}/ws/jobs/${jobId}?token=${API_KEY}`);
+
+  ws.onmessage = async (event) => {
+    const msg = JSON.parse(event.data);
+
+    if (msg.type === "chunk_complete") {
+      const buf = await fetch(msg.cdn_url).then(r => r.arrayBuffer());
+      queue.push(buf);
+      drainQueue();
+      if (video.paused && sourceBuffer.buffered.length > 0) video.play();
+    }
+
+    if (msg.type === "job_complete") {
+      const waitDrain = () => new Promise(r => {
+        const check = () => (queue.length === 0 && !appending) ? r() : setTimeout(check, 50);
+        check();
+      });
+      await waitDrain();
+      mediaSource.endOfStream();
+      ws.close();
+    }
+
+    if (msg.type === "error") {
+      console.error("Render error:", msg.error);
+      ws.close();
+    }
+  };
+}
+```
+
+### Server-Side: Stream to File (Python)
+
+Download fMP4 chunks as they arrive and concatenate into a single file:
+
+```python
+import requests
+
+API_KEY = "YOUR_API_KEY"
+BASE = "https://apis.viggle.ai"
+headers = {"Authorization": f"Bearer {API_KEY}"}
+
+def stream_to_file(job_id, output_path="stream.mp4"):
+    last_chunk = -1
+
+    with open(output_path, "wb") as f:
+        while True:
+            resp = requests.get(
+                f"{BASE}/api/render/{job_id}/poll",
+                headers=headers,
+                params={"last_chunk": last_chunk, "timeout": 30},
+                timeout=45,
+            ).json()
+
+            for chunk in resp["new_chunks"]:
+                data = requests.get(chunk["cdn_url"]).content
+                f.write(data)
+                f.flush()
+                last_chunk = max(last_chunk, chunk["chunk_id"])
+                print(f"  Wrote chunk {chunk['chunk_id']} ({len(data)} bytes)")
+
+            if resp["status"] == "complete":
+                print(f"Done! Saved to {output_path}")
+                break
+            elif resp["status"] == "failed":
+                raise Exception(resp.get("error"))
+```
+
+<Warning>
+  Concatenating raw fMP4 chunks produces a playable file in most players, but for a clean final file use the download endpoint (`GET /api/render/{job_id}/download`) which returns a properly merged MP4 with `faststart` flag.
+</Warning>
 
 ## Poll vs Status: When to Use Which
 

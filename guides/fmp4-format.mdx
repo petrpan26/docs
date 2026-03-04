@@ -1,0 +1,124 @@
+---
+title: 'fMP4 Format Specification'
+description: 'Technical details of the fragmented MP4 chunks produced by the Viggle render pipeline'
+---
+
+Each render chunk is delivered as a **fragmented MP4** (fMP4) file. This format enables progressive download, Media Source Extensions (MSE) playback, and DASH/HLS compatibility without re-encoding.
+
+## FFmpeg Conversion Flags
+
+Chunks are produced with the following FFmpeg flags:
+
+```bash
+ffmpeg -y -i input.mp4 \
+  -c:v copy -c:a copy \
+  -movflags +frag_keyframe+empty_moov+default_base_moof \
+  -f mp4 output.mp4
+```
+
+| Flag | Purpose |
+|------|---------|
+| `-c:v copy` | Stream-copy video (no re-encoding) |
+| `-c:a copy` | Stream-copy audio (no re-encoding) |
+| `frag_keyframe` | Start a new fragment at each keyframe for independent decodability |
+| `empty_moov` | Write an empty `moov` box at the start (no sample tables) — required for MSE |
+| `default_base_moof` | Use `moof` position as base offset for sample positions — required by MSE and DASH |
+
+## Box Structure
+
+Each fMP4 chunk file contains the following ISO BMFF box layout:
+
+```
+ftyp                      File Type Box
+├─ major_brand: isom
+├─ minor_version: 512
+└─ compatible: isom, iso2, avc1, mp41
+
+moov                      Movie Box (empty — no sample tables)
+├─ mvhd                   Movie header (timescale, duration=0)
+├─ trak                   Track Box
+│  ├─ tkhd                Track header (width, height, track_id)
+│  └─ mdia                Media Box
+│     ├─ mdhd             Media header (timescale)
+│     ├─ hdlr             Handler (vide)
+│     └─ minf → stbl      Sample table (empty: stts, stsc, stsz, stco)
+└─ mvex                   Movie Extends Box
+   └─ trex                Track extends defaults (sample_size=0, etc.)
+
+moof                      Movie Fragment #1
+├─ mfhd                   Fragment header (sequence_number=1)
+└─ traf                   Track Fragment
+   ├─ tfhd                Track fragment header (track_id, flags)
+   ├─ tfdt                Track fragment decode time (base_media_decode_time)
+   └─ trun                Track run (sample_count, sizes, durations, flags)
+mdat                      Media Data #1 (H.264 NAL units)
+
+moof                      Movie Fragment #2
+├─ ...
+mdat                      Media Data #2
+
+...                       (one moof+mdat pair per keyframe)
+```
+
+## Key Fields
+
+| Field | Location | Description |
+|-------|----------|-------------|
+| `major_brand` | ftyp | Always `isom` |
+| `timescale` | moov → mvhd / mdhd | Ticks per second (typically 12800 or 15360) |
+| `track_id` | trak → tkhd | Always `1` for single-track video |
+| `sequence_number` | moof → mfhd | Fragment index (1-based, incrementing) |
+| `base_media_decode_time` | traf → tfdt | Presentation timestamp in timescale units |
+| `sample_count` | traf → trun | Number of video frames in this fragment |
+| `sample_duration` | trun entries | Duration of each frame in timescale units |
+| `sample_size` | trun entries | Byte size of each frame's NAL data |
+| `sample_flags` | trun entries | Sync sample flag indicates keyframes |
+
+## MSE Chunk Concatenation
+
+For browser playback via [Media Source Extensions](/guides/live-render#progressive-playback-with-fmp4--mse), chunks can be appended sequentially:
+
+```
+Chunk 0:  [ftyp][moov][moof₁][mdat₁]...
+Chunk 1:  [ftyp][moov][moof₁][mdat₁]...
+Chunk 2:  [ftyp][moov][moof₁][mdat₁]...
+```
+
+Each chunk is a self-contained fMP4 with its own initialization segment (`ftyp` + `moov`). MSE's `SourceBuffer` handles the re-initialization automatically when you call `appendBuffer()` for each chunk.
+
+<Info>
+  The codec string for `addSourceBuffer()` should match the video profile:
+  - **SD**: `'video/mp4; codecs="avc1.64001f"'` (High profile, level 3.1)
+  - **HD**: `'video/mp4; codecs="avc1.640028"'` (High profile, level 4.0)
+</Info>
+
+## Final Merged Video
+
+The download endpoint (`GET /api/render/{job_id}/download`) returns a **non-fragmented** MP4 with `+faststart` (moov atom at the beginning). This is the recommended format for storage and distribution:
+
+```bash
+# Merge uses different flags — standard MP4, not fMP4
+ffmpeg -y -f concat -safe 0 -i chunks.txt -c copy -movflags +faststart output.mp4
+```
+
+## Verification Commands
+
+Inspect the box structure of a chunk file:
+
+```bash
+# Show all boxes (requires ffprobe)
+ffprobe -show_format -show_streams chunk_0.mp4
+
+# Show box layout (requires mp4dump from Bento4)
+mp4dump chunk_0.mp4
+
+# Verify fragment structure
+mp4info --show-layout chunk_0.mp4
+
+# Quick check — should show "isom" brand and "empty_moov" in format
+ffprobe -v quiet -show_format chunk_0.mp4 | grep -i frag
+```
+
+<Tip>
+  Use [Bento4](https://www.bento4.com/) tools (`mp4dump`, `mp4info`, `mp4fragment`) for detailed ISO BMFF inspection. FFprobe provides basic metadata but doesn't show individual box layouts.
+</Tip>
