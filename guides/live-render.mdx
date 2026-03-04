@@ -287,6 +287,66 @@ def stream_to_file(job_id, output_path="stream.mp4"):
   Concatenating raw fMP4 chunks produces a playable file in most players, but for a clean final file use the download endpoint (`GET /api/render/{job_id}/download`) which returns a properly merged MP4 with `faststart` flag.
 </Warning>
 
+## fMP4 Chunk Format
+
+Each chunk is a self-contained **fragmented MP4** (ISO BMFF) produced with:
+
+```bash
+ffmpeg -c:v copy -movflags +frag_keyframe+empty_moov+default_base_moof -f mp4
+```
+
+| Flag | Purpose |
+|------|---------|
+| `frag_keyframe` | New fragment at each keyframe — independently decodable |
+| `empty_moov` | Empty `moov` box at start (no sample tables) — required for MSE |
+| `default_base_moof` | `moof` position as base offset — required by MSE and DASH |
+
+### Box Layout
+
+```
+ftyp          File Type (isom)
+moov          Movie Box (empty — metadata only)
+├─ mvhd       Movie header (timescale, duration=0)
+├─ trak       Track (width, height, codec: H.264)
+└─ mvex       Movie extends (trex defaults)
+moof          Movie Fragment #1
+├─ mfhd       Sequence number
+└─ traf       Track fragment (tfhd, tfdt, trun)
+mdat          Media Data #1 (H.264 NAL units)
+moof + mdat   Fragment #2 ...
+```
+
+### Key Fields
+
+| Field | Box | Description |
+|-------|-----|-------------|
+| `timescale` | mvhd / mdhd | Ticks per second (typically 12800 or 15360) |
+| `sequence_number` | mfhd | Fragment index (1-based) |
+| `base_media_decode_time` | tfdt | Presentation timestamp in timescale units |
+| `sample_count` | trun | Number of video frames in this fragment |
+| `sample_flags` | trun | Sync sample flag for keyframes |
+
+### MSE Codec Strings
+
+| Resolution | Codec string for `addSourceBuffer()` |
+|------------|---------------------------------------|
+| SD | `'video/mp4; codecs="avc1.64001f"'` (High profile, level 3.1) |
+| HD | `'video/mp4; codecs="avc1.640028"'` (High profile, level 4.0) |
+
+### Verification
+
+```bash
+# Inspect box structure (Bento4)
+mp4dump chunk_0.mp4
+
+# Check streams and format
+ffprobe -show_format -show_streams chunk_0.mp4
+```
+
+<Info>
+  For the full specification including all box fields and concatenation details, see [fMP4 Format Specification](/guides/fmp4-format).
+</Info>
+
 ## Poll vs Status: When to Use Which
 
 | Feature | Poll (`/poll`) | Status (`/`) |
