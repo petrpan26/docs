@@ -18,12 +18,12 @@
   "topbarLinks": [
     {
       "name": "Dashboard",
-      "url": "https://viggle.ai/dashboard"
+      "url": "https://portal.viggle.ai/dashboard"
     }
   ],
   "topbarCtaButton": {
     "name": "Get API Key",
-    "url": "https://viggle.ai/api-keys"
+    "url": "https://portal.viggle.ai/api-keys"
   },
   "tabs": [
     {

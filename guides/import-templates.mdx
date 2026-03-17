@@ -187,7 +187,7 @@ job = requests.post(
     data={
         "character_id": "YOUR_CHARACTER_ID",
         "scene_id": scene_id,
-        "background_mode": "inpainted"
+        "background_mode": "original"
     }
 ).json()
 print(f"Job ID: {job['job_id']}")
@@ -211,7 +211,7 @@ job = requests.post(
     data={
         "scene_id": scene_id,
         "character_mapping": json.dumps(character_mapping),
-        "background_mode": "inpainted"
+        "background_mode": "original"
     }
 ).json()
 print(f"Job ID: {job['job_id']}")
@@ -254,7 +254,7 @@ job = requests.post(
     data={
         "scene_id": scene_id,
         "character_mapping": json.dumps(character_mapping),
-        "background_mode": "inpainted",
+        "background_mode": "original",
         "resolution": "HD"
     }
 ).json()

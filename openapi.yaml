@@ -780,8 +780,8 @@ paths:
                   description: Rendering model. Currently only V4_Preview is available.
                 background_mode:
                   type: string
-                  enum: [inpainted, original, solid, transparent]
-                  default: inpainted
+                  enum: [original, solid, transparent]
+                  default: original
                   description: Background handling mode
                 bg_color:
                   type: string
@@ -803,7 +803,7 @@ paths:
                 mask_dilation:
                   type: integer
                   default: 12
-                  description: Mask dilation (0-50)
+                  description: Mask dilation in pixels (0-50). Controls character mask edge expansion. Internal parameter — typically left at default.
                 ref_image:
                   type: string
                   format: binary
@@ -862,6 +862,12 @@ paths:
                 $ref: '#/components/schemas/RenderJob'
         '404':
           description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '410':
+          description: Result expired
           content:
             application/json:
               schema:
@@ -1013,6 +1019,18 @@ paths:
                 type: string
                 format: uri
               description: CDN URL for the video file
+        '202':
+          description: Video is still being merged. Retry shortly.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '400':
+          description: Job not complete yet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '401':
           description: Unauthorized
           content:
@@ -1020,7 +1038,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '404':
-          description: Job not found or not complete
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '410':
+          description: Result expired — download is no longer available
           content:
             application/json:
               schema:
@@ -1051,6 +1075,12 @@ paths:
                 type: string
                 format: uri
               description: CDN URL for the mask video file
+        '400':
+          description: Job not complete yet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '401':
           description: Unauthorized
           content:
@@ -1059,6 +1089,12 @@ paths:
                 $ref: '#/components/schemas/Error'
         '404':
           description: No mask available (job not found, not complete, or not transparent mode)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '410':
+          description: Result expired — mask download is no longer available
           content:
             application/json:
               schema:

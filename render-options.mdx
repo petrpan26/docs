@@ -11,13 +11,12 @@ Configure video generation by passing form fields when creating a render job via
   The rendering model. Currently only `V4_Preview` is available.
 </ParamField>
 
-<ParamField body="background_mode" type="string" default="inpainted">
+<ParamField body="background_mode" type="string" default="original">
   Background handling mode.
 
   | Value | Description |
   |-------|-------------|
-  | `inpainted` | AI fills the background intelligently (default) |
-  | `original` | Keep the original video background |
+  | `original` | Keep the original video background (default) |
   | `solid` | Replace with solid color (use with `bg_color`) |
   | `transparent` | Transparent background with separate mask video for compositing |
 </ParamField>
@@ -54,7 +53,7 @@ Configure video generation by passing form fields when creating a render job via
 </ParamField>
 
 <ParamField body="mask_dilation" type="integer" default="12">
-  Mask edge dilation in pixels (0-50). Controls how far the character mask extends beyond detected edges. Higher values create a softer boundary.
+  Mask edge dilation in pixels (0-50). Controls how far the character mask extends beyond detected edges. Higher values create a softer boundary. Typically left at default.
 </ParamField>
 
 ## Example Usage
@@ -68,7 +67,7 @@ curl -X POST "https://apis.viggle.ai/api/render" \
   -d "scene_id=scene_xxx"
 ```
 
-Uses default inpainted background.
+Uses default original background.
 
 ### Green Screen
 
@@ -115,8 +114,7 @@ curl -X POST "https://apis.viggle.ai/api/render" \
 
 | Mode | Use Case | Output |
 |------|----------|--------|
-| `inpainted` | General use, social media | AI-generated background that matches the scene |
-| `original` | Keep scene context | Original video background preserved |
+| `original` | General use, keep scene context | Original video background preserved (default) |
 | `solid` | Green screen, compositing | Solid color background for easy keying |
 | `transparent` | Professional compositing | Black background video + separate mask video for layering in video editors |
 
@@ -124,8 +122,7 @@ curl -X POST "https://apis.viggle.ai/api/render" \
 
 <AccordionGroup>
   <Accordion title="Background selection">
-    - Use **inpainted** when you want a complete, ready-to-share video
-    - Use **original** when the scene context is important
+    - Use **original** (default) when you want the scene context preserved
     - Use **solid** or **transparent** when compositing in video editors
   </Accordion>
 
