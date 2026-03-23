@@ -7,7 +7,10 @@ description: 'Start a video render job'
 Start a video render job using `multipart/form-data`. Both character and scene must have status `ready`.
 
 <Note>
-  **On-Demand Mode**: Instead of pre-creating character and scene assets, you can upload `ref_image` and `driving_video` directly as files. This skips preprocessing and renders in a single request — useful for one-off renders where you don't need to reuse assets.
+  **Two workflows available:**
+
+  - **On-Demand:** Upload `ref_image` and `driving_video` directly — no preprocessing, no stored assets. Costs 1 credit/second of video only; character creation is not charged when uploaded in the same request.
+  - **Reusable Assets:** Pre-create characters (1 credit each) and scenes (free) for reuse across renders. Each render costs 1 credit/second. Best for applying the same motion to multiple characters.
 </Note>
 
 ## Next Steps

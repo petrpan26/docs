@@ -548,7 +548,7 @@ paths:
   /api/scenes/preprocess:
     post:
       summary: Create Scene
-      description: Upload a driving video to create a reusable scene. Extracts motion data for character animation. Costs 1 credit per second of video. Poll GET /api/scenes/{id} until status is ready.
+      description: Upload a driving video to create a reusable scene. Extracts motion data for character animation. Scene creation is free. Credits are consumed at render time. Poll GET /api/scenes/{id} until status is ready.
       operationId: createScene
       tags:
         - Scenes
