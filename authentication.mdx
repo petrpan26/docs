@@ -5,7 +5,7 @@ description: "Learn how to authenticate with the Viggle API"
 
 ## API Keys
 
-All API requests require an API key passed in the Authorization header. The only exceptions are health check endpoints (`/health`, `/healthz`) and the job status endpoint (`GET /api/render/{job_id}`).
+All API requests require an API key passed in the Authorization header. The only exceptions are health check endpoints (`/health`, `/healthz`) and the job status endpoint (`GET /api/render/{job_id}`) — status is unauthenticated so lightweight clients and monitoring tools can poll job progress without storing credentials.
 
 API keys can be created in your [Viggle Dashboard](https://portal.viggle.ai/dashboard).
 

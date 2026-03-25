@@ -8,7 +8,7 @@ Configure video generation by passing form fields when creating a render job via
 ## Available Options
 
 <ParamField body="model" type="string" default="V4_Preview">
-  The rendering model. Currently only `V4_Preview` is available.
+  The rendering model. Currently only `V4_Preview` is available. This field is optional — omit it to use the default. New models will be added in future releases.
 </ParamField>
 
 <ParamField body="background_mode" type="string" default="original">
@@ -22,7 +22,7 @@ Configure video generation by passing form fields when creating a render job via
 </ParamField>
 
 <ParamField body="bg_color" type="string" default="0,255,0">
-  RGB string for solid background color. Only used when `background_mode` is `solid`. Format: `"R,G,B"`.
+  RGB string for solid background color. Only used when `background_mode` is `solid`. Format: `"R,G,B"` (comma-separated 0–255 values, not hex).
 
   ```
   bg_color=0,255,0       # Green screen

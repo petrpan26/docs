@@ -3,13 +3,13 @@ title: 'Errors'
 description: 'API error codes and handling'
 ---
 
-All API endpoints return errors in a consistent JSON format.
+All API endpoints return errors in JSON format with a `detail` field:
 
 ## Error Response Format
 
 ```json
 {
-  "error": "Human-readable error message"
+  "detail": "Human-readable error message"
 }
 ```
 
@@ -68,13 +68,12 @@ All API endpoints return errors in a consistent JSON format.
 </ResponseField>
 
 <ResponseField name="429" type="Rate Limited">
-  Too many requests.
-  
+  Too many concurrent requests.
+
   **Common causes:**
-  - Exceeding API rate limits
-  - Too many concurrent requests
-  
-  **Solution:** Implement exponential backoff and retry logic.
+  - Exceeding your organization's concurrency limit (default: 5 concurrent render jobs)
+
+  **Solution:** Wait for existing jobs to complete, or implement exponential backoff and retry logic.
 </ResponseField>
 
 <ResponseField name="503" type="Service Unavailable">
@@ -158,4 +157,4 @@ All API endpoints return errors in a consistent JSON format.
 | Out of credits | 402 | Purchase more credits |
 | Fast mode unavailable | 503 | Set `fast: false` or retry later |
 | Invalid character ID | 404 | Verify the ID exists in your account |
-| Rate limited | 429 | Implement backoff and retry |
+| Rate limited | 429 | Wait for jobs to finish or retry with backoff |

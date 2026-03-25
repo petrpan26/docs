@@ -1,0 +1,179 @@
+---
+title: 'On-Demand Rendering'
+description: 'Render a video in one API call — no preprocessing required'
+---
+
+Send a character image and driving video directly in the render request. No preprocessing, no stored assets — just one API call to start rendering.
+
+## Prerequisites
+
+- A Viggle API key ([get one here](https://portal.viggle.ai/api-keys))
+- A reference image (PNG or JPG) of the character you want to animate
+- A driving video (MP4) containing the motion you want to transfer
+
+## Step 1: Render
+
+Upload `ref_image` and `driving_video` directly to start a render job. **Costs 1 credit/second of output video only** — no separate character charge.
+
+<CodeGroup>
+
+```python Python
+import requests
+
+API_KEY = "YOUR_API_KEY"
+BASE = "https://apis.viggle.ai"
+headers = {"Authorization": f"Bearer {API_KEY}"}
+
+job = requests.post(
+    f"{BASE}/api/render",
+    headers=headers,
+    files={
+        "ref_image": open("character.png", "rb"),
+        "driving_video": open("dance.mp4", "rb"),
+    }
+).json()
+
+print(f"Job ID: {job['job_id']}")
+```
+
+```javascript JavaScript
+const API_KEY = "YOUR_API_KEY";
+const BASE = "https://apis.viggle.ai";
+const headers = { "Authorization": `Bearer ${API_KEY}` };
+
+const form = new FormData();
+form.append("ref_image", imageFile);
+form.append("driving_video", videoFile);
+
+const job = await fetch(`${BASE}/api/render`, {
+  method: "POST", headers, body: form
+}).then(r => r.json());
+
+console.log(`Job ID: ${job.job_id}`);
+```
+
+```bash cURL
+curl -X POST "https://apis.viggle.ai/api/render" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -F "ref_image=@character.png" \
+  -F "driving_video=@dance.mp4"
+```
+
+</CodeGroup>
+
+## Step 2: Poll for Completion
+
+Check status until the job is complete. No authentication required for the status endpoint.
+
+<CodeGroup>
+
+```python Python
+import time
+
+while True:
+    status = requests.get(f"{BASE}/api/render/{job['job_id']}").json()
+    progress = status.get("progress", {})
+    print(f"Status: {status['status']} ({progress.get('completed_chunks', 0)}/{progress.get('total_chunks', 0)})")
+
+    if status["status"] == "complete":
+        break
+    elif status["status"] == "failed":
+        raise Exception(status.get("error"))
+
+    time.sleep(5)
+```
+
+```javascript JavaScript
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+while (true) {
+  const status = await fetch(`${BASE}/api/render/${job.job_id}`).then(r => r.json());
+  const { completed_chunks = 0, total_chunks = 0 } = status.progress ?? {};
+  console.log(`Status: ${status.status} (${completed_chunks}/${total_chunks})`);
+
+  if (status.status === "complete") break;
+  if (status.status === "failed") throw new Error(status.error);
+
+  await sleep(5000);
+}
+```
+
+</CodeGroup>
+
+## Step 3: Download
+
+Download the completed video (authentication required).
+
+<CodeGroup>
+
+```python Python
+video = requests.get(
+    f"{BASE}/api/render/{job['job_id']}/download",
+    headers=headers
+)
+with open("output.mp4", "wb") as f:
+    f.write(video.content)
+print("Saved to output.mp4")
+```
+
+```javascript JavaScript
+const video = await fetch(
+  `${BASE}/api/render/${job.job_id}/download`,
+  { headers }
+).then(r => r.arrayBuffer());
+
+const fs = require('fs');
+fs.writeFileSync("output.mp4", Buffer.from(video));
+console.log("Saved to output.mp4");
+```
+
+```bash cURL
+curl -L "https://apis.viggle.ai/api/render/JOB_ID/download" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -o output.mp4
+```
+
+</CodeGroup>
+
+## Render Options
+
+Pass additional form fields alongside `ref_image` and `driving_video` to customize output:
+
+```python
+job = requests.post(f"{BASE}/api/render", headers=headers, files={
+    "ref_image": open("character.png", "rb"),
+    "driving_video": open("dance.mp4", "rb"),
+}, data={
+    "background_mode": "solid",
+    "bg_color": "0,255,0",
+    "fast": "true",
+}).json()
+```
+
+See [Render Options](/render-options) for all available parameters.
+
+## On-Demand vs Preprocessing
+
+| | On-Demand | Preprocessing |
+|--|-----------|---------------|
+| **Setup** | None — send files directly | Create character + scene first |
+| **Speed** | Includes preprocessing time | ~3x faster (skips preprocessing) |
+| **Reuse** | No stored assets | Reuse characters and scenes across renders |
+| **Best for** | One-off renders, prototyping | Production workflows, repeated renders |
+
+## What's Next?
+
+<CardGroup cols={2}>
+  <Card title="Preprocessing Guide" icon="rocket" href="/guides/quickstart">
+    Pre-create characters and scenes for 3x faster renders
+  </Card>
+  <Card title="Import Templates" icon="download" href="/guides/import-templates">
+    Use pre-made templates from viggle.ai
+  </Card>
+  <Card title="Live Rendering" icon="bolt" href="/guides/live-render">
+    Stream video chunks in real-time
+  </Card>
+  <Card title="Render Options" icon="sliders" href="/render-options">
+    Background mode, fast mode, and more
+  </Card>
+</CardGroup>

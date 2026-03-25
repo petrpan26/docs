@@ -860,41 +860,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-    delete:
-      summary: Cancel / Delete Job
-      description: Cancel a running job or delete a completed one. Releases reserved resources and refunds credits for incomplete jobs.
-      operationId: cancelRenderJob
-      tags:
-        - Render
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: job_id
-          in: path
-          required: true
-          schema:
-            type: string
-          example: job_abc123xyz
-      responses:
-        '200':
-          description: Job deleted
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RenderDeleted'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '404':
-          description: Job not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
   /api/render/{job_id}/poll:
     get:
       summary: Poll for Chunks (Live Render)

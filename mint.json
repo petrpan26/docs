@@ -86,8 +86,7 @@
         "api-reference/render/multi-character",
         "api-reference/render/poll",
         "api-reference/render/status",
-        "api-reference/render/download",
-        "api-reference/render/cancel"
+        "api-reference/render/download"
       ]
     },
     {
