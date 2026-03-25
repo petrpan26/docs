@@ -1,9 +1,9 @@
 ---
-title: 'Quickstart Guide'
-description: 'Render your first AI animation video in minutes'
+title: 'Preprocessing Guide'
+description: 'Pre-create characters and scenes for faster, reusable rendering'
 ---
 
-Generate your first AI-powered character animation video. This guide walks through the complete workflow: create a character, create a scene, render, and download.
+Pre-create characters and scenes to cut render latency by ~3x. Preprocessed assets are stored and reusable across unlimited renders — ideal for production workflows where you render the same character with different motions, or the same motion with different characters.
 
 ## Prerequisites
 
@@ -13,7 +13,7 @@ Generate your first AI-powered character animation video. This guide walks throu
 
 ## Step 1: Create a Character
 
-Upload a reference image to create a reusable character. This extracts a character embedding that can be used across multiple renders. **Costs 1 credit.**
+Upload a reference image to create a reusable character. This extracts a character embedding that can be used across multiple renders. **Free — credits are refunded when your first render starts.**
 
 <CodeGroup>
 
@@ -295,6 +295,19 @@ curl -L "https://apis.viggle.ai/api/render/JOB_ID/download" \
 
 </CodeGroup>
 
+## Why Preprocess?
+
+Preprocessing extracts data ahead of time so subsequent renders skip that work:
+
+- **Characters** — Extracts a character embedding (~5s). Once ready, any render using this character starts instantly instead of re-processing the image.
+- **Scenes** — Extracts motion data (~20s). Once ready, any render using this scene skips video analysis.
+
+The result: renders with preprocessed assets are **~3x faster** than on-demand renders that include preprocessing in the render call.
+
+<Tip>
+  Character and scene creation are both free — credits are refunded when your first render starts. You only pay for rendered video (1 credit/second).
+</Tip>
+
 ## Reusing Assets
 
 Once preprocessed, characters and scenes can be reused across multiple renders without re-uploading:
@@ -323,19 +336,16 @@ scenes = requests.get(f"{BASE}/api/scenes", headers=headers).json()
 ## What's Next?
 
 <CardGroup cols={2}>
-  <Card title="Render Options" icon="sliders" href="/render-options">
-    Customize background mode, resolution, frame rate, and more
+  <Card title="On-Demand Rendering" icon="bolt" href="/guides/on-demand">
+    Render without preprocessing — one API call
   </Card>
   <Card title="Import Templates" icon="download" href="/guides/import-templates">
-    Find and import templates from viggle.ai
+    Use pre-made templates from viggle.ai
   </Card>
-  <Card title="Compositing Guide" icon="layer-group" href="/guides/compositing">
-    Use transparent mode + mask for professional compositing
+  <Card title="Live Rendering" icon="play" href="/guides/live-render">
+    Stream video chunks in real-time
   </Card>
-  <Card title="Live Rendering" icon="bolt" href="/guides/live-render">
-    Stream video chunks in real-time as they render
-  </Card>
-  <Card title="Batch Processing" icon="list-check" href="/guides/batch-processing">
-    Render multiple videos concurrently
+  <Card title="Render Options" icon="sliders" href="/render-options">
+    Background mode, fast mode, and more
   </Card>
 </CardGroup>

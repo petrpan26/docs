@@ -787,23 +787,10 @@ paths:
                   type: string
                   description: 'RGB string for solid background color, e.g., "0,255,0". Only used when background_mode is solid.'
                   example: '0,255,0'
-                resolution:
-                  type: string
-                  enum: [SD, HD]
-                  default: SD
-                  description: Output resolution
                 fast:
                   type: boolean
                   default: false
                   description: Enable fast mode for faster rendering
-                output_fps:
-                  type: integer
-                  nullable: true
-                  description: Output FPS (1-60)
-                mask_dilation:
-                  type: integer
-                  default: 12
-                  description: Mask dilation in pixels (0-50). Controls character mask edge expansion. Internal parameter — typically left at default.
                 ref_image:
                   type: string
                   format: binary

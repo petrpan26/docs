@@ -1,31 +1,10 @@
 ---
 title: "Pricing"
-description: "Credits, billing, and cost by workflow"
+description: "Credits and billing"
 ---
 
-Credits apply when you **pre-create and store characters** (anti-abuse for uploads) and when you **produce rendered video**. **Scene creation is free** — preprocessing a driving video or importing a template does not consume credits.
+**1 credit per second** of rendered video. That's it.
 
-## Cost summary
-
-- **Character** — When you call `POST /api/characters/preprocess` and store a reusable character: **1 credit** per character.
-- **Scene** — Creating a scene (`POST /api/scenes/preprocess`) or importing a template: **free**.
-- **Render** — Every completed render: **1 credit per second** of output video.
-- **On-demand render** — If you upload `ref_image` and `driving_video` in the same `POST /api/render` request (no stored character), the character is **not** charged separately; you only pay **1 credit/second** for the video. See [Create Render Job](/api-reference/render/create).
+Character and scene creation are free. A small credit hold is placed when you create characters to prevent abuse, but it's automatically refunded when your first render starts.
 
 To check your balance, use [Get Credit Balance](/api-reference/credits/balance).
-
-## Scenarios (example: 10 second video)
-
-Costs below are **examples** using a **10 second** output. Replace `10` with your duration: **render cost = seconds × 1 credit**.
-
-| Scenario | Character | Scene | Render (10s example) | Total credits |
-| -------- | --------- | ----- | ---------------------- | ------------ |
-| **On-demand (one-off)** | Included in render (not stored) | Included in render (not stored) | 10 | **10** |
-| **Reusable — first time** | 1 (preprocess & store) | 0 (free) | 10 | **11** |
-| **Reusable — same stored character + scene** | 0 (already paid) | 0 | 10 | **10** |
-| **Reusable — new character, existing scene** | 1 (preprocess & store) | 0 | 10 | **11** |
-| **Reusable — existing character, new scene** | 0 | 0 (new scene is free) | 10 | **10** |
-
-## Takeaway
-
-You pay for **stored characters** (1 credit each when you preprocess) and for **rendered video** (1 credit per second). Scene creation is free. On-demand uploads avoid the stored-character charge but still cost **1 credit/second** for the output.

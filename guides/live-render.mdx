@@ -129,7 +129,7 @@ Each chunk is a **fragmented MP4** (fMP4) file with `empty_moov` + `moof`/`mdat`
 
 ```javascript
 const video = document.getElementById("player");
-const mime = 'video/mp4; codecs="avc1.64001f"'; // Use "avc1.640028" for HD
+const mime = 'video/mp4; codecs="avc1.64001f"';
 
 async function streamWithMSE(jobId) {
   const headers = { Authorization: `Bearer ${API_KEY}` };
@@ -188,61 +188,6 @@ async function streamWithMSE(jobId) {
       break;
     }
   }
-}
-```
-
-### WebSocket MSE Player
-
-For lower latency, use the WebSocket endpoint to receive chunk notifications as push events instead of polling:
-
-```javascript
-async function streamWithWebSocket(jobId) {
-  const mediaSource = new MediaSource();
-  video.src = URL.createObjectURL(mediaSource);
-
-  await new Promise(r => mediaSource.addEventListener("sourceopen", r, { once: true }));
-  const sourceBuffer = mediaSource.addSourceBuffer(mime);
-
-  const queue = [];
-  let appending = false;
-
-  function drainQueue() {
-    if (appending || queue.length === 0) return;
-    appending = true;
-    sourceBuffer.appendBuffer(queue.shift());
-  }
-  sourceBuffer.addEventListener("updateend", () => {
-    appending = false;
-    drainQueue();
-  });
-
-  const ws = new WebSocket(`wss://${location.host}/ws/jobs/${jobId}?token=${API_KEY}`);
-
-  ws.onmessage = async (event) => {
-    const msg = JSON.parse(event.data);
-
-    if (msg.type === "chunk_complete") {
-      const buf = await fetch(msg.cdn_url).then(r => r.arrayBuffer());
-      queue.push(buf);
-      drainQueue();
-      if (video.paused && sourceBuffer.buffered.length > 0) video.play();
-    }
-
-    if (msg.type === "job_complete") {
-      const waitDrain = () => new Promise(r => {
-        const check = () => (queue.length === 0 && !appending) ? r() : setTimeout(check, 50);
-        check();
-      });
-      await waitDrain();
-      mediaSource.endOfStream();
-      ws.close();
-    }
-
-    if (msg.type === "error") {
-      console.error("Render error:", msg.error);
-      ws.close();
-    }
-  };
 }
 ```
 
@@ -326,12 +271,13 @@ moof + mdat   Fragment #2 ...
 | `sample_count` | trun | Number of video frames in this fragment |
 | `sample_flags` | trun | Sync sample flag for keyframes |
 
-### MSE Codec Strings
+### MSE Codec String
 
-| Resolution | Codec string for `addSourceBuffer()` |
-|------------|---------------------------------------|
-| SD | `'video/mp4; codecs="avc1.64001f"'` (High profile, level 3.1) |
-| HD | `'video/mp4; codecs="avc1.640028"'` (High profile, level 4.0) |
+Use this codec string for `addSourceBuffer()`:
+
+```
+'video/mp4; codecs="avc1.64001f"'
+```
 
 ### Verification
 

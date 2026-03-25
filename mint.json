@@ -7,12 +7,12 @@
   },
   "favicon": "/logo/viggle-logo.png",
   "colors": {
-    "primary": "#c8ff00",
-    "light": "#4a7000",
+    "primary": "#2d5a00",
+    "light": "#2d5a00",
     "dark": "#a3cc00",
     "background": {
       "dark": "#0e0e10",
-      "light": "#ffffff"
+      "light": "#eeeee8"
     }
   },
   "topbarLinks": [
@@ -46,12 +46,17 @@
     {
       "group": "Guides",
       "pages": [
+        "guides/on-demand",
         "guides/quickstart",
         "guides/import-templates",
+        "guides/live-render"
+      ]
+    },
+    {
+      "group": "Advanced",
+      "pages": [
         "guides/compositing",
-        "guides/live-render",
-        "guides/fmp4-format",
-        "guides/batch-processing"
+        "guides/fmp4-format"
       ]
     },
     {

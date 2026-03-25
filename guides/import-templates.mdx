@@ -254,8 +254,7 @@ job = requests.post(
     data={
         "scene_id": scene_id,
         "character_mapping": json.dumps(character_mapping),
-        "background_mode": "original",
-        "resolution": "HD"
+        "background_mode": "original"
     }
 ).json()
 print(f"Render started: {job['job_id']}")

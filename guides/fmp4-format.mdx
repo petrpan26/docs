@@ -87,9 +87,8 @@ Chunk 2:  [ftyp][moov][moof₁][mdat₁]...
 Each chunk is a self-contained fMP4 with its own initialization segment (`ftyp` + `moov`). MSE's `SourceBuffer` handles the re-initialization automatically when you call `appendBuffer()` for each chunk.
 
 <Info>
-  The codec string for `addSourceBuffer()` should match the video profile:
-  - **SD**: `'video/mp4; codecs="avc1.64001f"'` (High profile, level 3.1)
-  - **HD**: `'video/mp4; codecs="avc1.640028"'` (High profile, level 4.0)
+  The codec string for `addSourceBuffer()` is:
+  `'video/mp4; codecs="avc1.64001f"'` (High profile, level 3.1)
 </Info>
 
 ## Final Merged Video

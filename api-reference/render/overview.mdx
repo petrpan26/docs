@@ -3,28 +3,7 @@ title: 'Render API Overview'
 description: 'Combine characters and scenes to generate animated videos'
 ---
 
-The Render API combines a character and scene to generate an animated video. Two rendering workflows are available based on your needs.
-
-## Rendering Modes
-
-<CardGroup cols={2}>
-  <Card title="Live Render" icon="bolt" color="#c8ff00">
-    Use the **Poll endpoint** with long-polling. Returns video chunks progressively as they're rendered.
-
-    **Best for:**
-    - Real-time preview
-    - Progressive playback
-    - Streaming applications
-  </Card>
-  <Card title="Batch Render" icon="layer-group" color="#a855f7">
-    Use the **Status endpoint** (no auth required) to check progress. Download the complete video when status is `complete`.
-
-    **Best for:**
-    - Background processing
-    - File downloads
-    - Simple integration
-  </Card>
-</CardGroup>
+The Render API combines a character and scene to generate an animated video. Use the **Poll endpoint** with long-polling to receive video chunks progressively as they render, or check the **Status endpoint** and download the complete video when ready.
 
 ## Job Status Flow
 
@@ -49,50 +28,26 @@ graph LR
 | `complete` | Video is ready for download |
 | `failed` | Job failed (check `error` field) |
 
-## Workflow Comparison
+## Live Render Example
 
-<Tabs>
-  <Tab title="Live Render (Poll)">
-    ```python
-    # Long-poll for chunks as they render
-    last_chunk = -1
-    while True:
-        resp = requests.get(
-            f"{BASE}/api/render/{job_id}/poll",
-            headers=headers,
-            params={"last_chunk": last_chunk, "timeout": 30}
-        ).json()
+```python
+# Long-poll for chunks as they render
+last_chunk = -1
+while True:
+    resp = requests.get(
+        f"{BASE}/api/render/{job_id}/poll",
+        headers=headers,
+        params={"last_chunk": last_chunk, "timeout": 30}
+    ).json()
 
-        # Play new chunks immediately
-        for chunk in resp["new_chunks"]:
-            play_video_chunk(chunk["cdn_url"])
-            last_chunk = max(last_chunk, chunk["chunk_id"])
+    # Play new chunks immediately
+    for chunk in resp["new_chunks"]:
+        play_video_chunk(chunk["cdn_url"])
+        last_chunk = max(last_chunk, chunk["chunk_id"])
 
-        if resp["status"] == "complete":
-            break
-    ```
-  </Tab>
-  <Tab title="Batch Render">
-    ```python
-    # Poll status until complete (no auth needed for status)
-    while True:
-        status = requests.get(
-            f"{BASE}/api/render/{job_id}"
-        ).json()
-
-        if status["status"] == "complete":
-            # Download full video (auth required)
-            video = requests.get(
-                f"{BASE}/api/render/{job_id}/download",
-                headers=headers
-            )
-            save_video(video.content)
-            break
-
-        time.sleep(5)
-    ```
-  </Tab>
-</Tabs>
+    if resp["status"] == "complete":
+        break
+```
 
 ## Quick Links
 
@@ -107,7 +62,7 @@ graph LR
     Live render with progressive chunks
   </Card>
   <Card title="Get Job Status" icon="chart-simple" href="/api-reference/render/status">
-    Check batch render progress (no auth)
+    Check render progress (no auth)
   </Card>
   <Card title="Download Video" icon="download" href="/api-reference/render/download">
     Download completed video (+ mask for transparent mode)
@@ -116,7 +71,7 @@ graph LR
     Cancel or delete a render job
   </Card>
   <Card title="Live Streaming Guide" icon="signal-stream" href="/guides/live-render">
-    Stream fMP4 chunks with MSE, WebSocket, or long-polling
+    Stream fMP4 chunks with MSE or long-polling
   </Card>
   <Card title="fMP4 Format Spec" icon="file-video" href="/guides/fmp4-format">
     Technical details of the fragmented MP4 chunk format

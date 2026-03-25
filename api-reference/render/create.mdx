@@ -9,14 +9,14 @@ Start a video render job using `multipart/form-data`. Both character and scene m
 <Note>
   **Two workflows available:**
 
-  - **On-Demand:** Upload `ref_image` and `driving_video` directly — no preprocessing, no stored assets. Costs 1 credit/second of video only; character creation is not charged when uploaded in the same request.
-  - **Reusable Assets:** Pre-create characters (1 credit each) and scenes (free) for reuse across renders. Each render costs 1 credit/second. Best for applying the same motion to multiple characters.
+  - **On-Demand:** Upload `ref_image` and `driving_video` directly — no preprocessing, no stored assets. Costs 1 credit/second of video only.
+  - **Reusable Assets:** Pre-create characters and scenes (both free — refunded when first render starts) for reuse across renders. Each render costs 1 credit/second.
 </Note>
 
 ## Next Steps
 
 After creating a render job, you can either:
 
-- **Live Render**: Use [Poll for Chunks](/api-reference/render/poll) to receive [fMP4](/guides/fmp4-format) video chunks progressively. See the [Live Streaming guide](/guides/live-render) for MSE browser playback and WebSocket examples.
-- **Batch Render**: Use [Get Job Status](/api-reference/render/status) (no auth required) to check progress, then [Download Video](/api-reference/render/download) when complete
+- **Live Render**: Use [Poll for Chunks](/api-reference/render/poll) to receive [fMP4](/guides/fmp4-format) video chunks progressively. See the [Live Streaming guide](/guides/live-render) for MSE browser playback examples.
+- **Check Status**: Use [Get Job Status](/api-reference/render/status) (no auth required) to check progress, then [Download Video](/api-reference/render/download) when complete
 - **Cancel**: Use [Cancel Job](/api-reference/render/cancel) to stop a running job
