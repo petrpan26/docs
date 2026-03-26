@@ -1,6 +1,7 @@
 ---
 title: 'Preprocessing Guide'
 description: 'Pre-create characters and scenes for faster, reusable rendering'
+icon: "rocket"
 ---
 
 Pre-create characters and scenes to cut render latency by ~3x. Preprocessed assets are stored and reusable across unlimited renders — ideal for production workflows where you render the same character with different motions, or the same motion with different characters.
@@ -336,7 +337,7 @@ scenes = requests.get(f"{BASE}/api/scenes", headers=headers).json()
 ## What's Next?
 
 <CardGroup cols={2}>
-  <Card title="On-Demand Rendering" icon="bolt" href="/guides/on-demand">
+  <Card title="On-Demand Rendering" icon="zap" href="/guides/on-demand">
     Render without preprocessing — one API call
   </Card>
   <Card title="Import Templates" icon="download" href="/guides/import-templates">
@@ -345,7 +346,7 @@ scenes = requests.get(f"{BASE}/api/scenes", headers=headers).json()
   <Card title="Live Rendering" icon="play" href="/guides/live-render">
     Stream video chunks in real-time
   </Card>
-  <Card title="Render Options" icon="sliders" href="/render-options">
+  <Card title="Render Options" icon="sliders-horizontal" href="/render-options">
     Background mode, fast mode, and more
   </Card>
 </CardGroup>

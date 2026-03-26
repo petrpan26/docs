@@ -7,13 +7,16 @@
   },
   "favicon": "/logo/viggle-logo.png",
   "colors": {
-    "primary": "#2d5a00",
-    "light": "#2d5a00",
-    "dark": "#a3cc00",
+    "primary": "#00FF41",
+    "light": "#00FF41",
+    "dark": "#00FF41",
     "background": {
       "dark": "#0e0e10",
       "light": "#eeeee8"
     }
+  },
+  "icons": {
+    "library": "lucide"
   },
   "topbarLinks": [
     {
@@ -34,7 +37,7 @@
   "anchors": [
     {
       "name": "Community",
-      "icon": "discord",
+      "icon": "https://cdn.simpleicons.org/discord/white",
       "url": "https://discord.com/invite/viggle"
     }
   ],
@@ -55,6 +58,7 @@
     {
       "group": "Advanced",
       "pages": [
+        "guides/batch-processing",
         "guides/compositing",
         "guides/fmp4-format"
       ]
@@ -95,7 +99,7 @@
     },
     {
       "group": "Reference",
-      "pages": ["render-options", "errors"]
+      "pages": ["render-options", "error-codes"]
     }
   ],
   "footerSocials": {
@@ -112,7 +116,21 @@
     }
   },
   "openapi": "openapi.yaml",
+  "redirects": [
+    {
+      "source": "/errors",
+      "destination": "/error-codes",
+      "permanent": true
+    }
+  ],
   "headTags": [
+    {
+      "tag": "link",
+      "attributes": {
+        "rel": "stylesheet",
+        "href": "/global.css"
+      }
+    },
     {
       "tag": "script",
       "attributes": {

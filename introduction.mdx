@@ -1,198 +1,160 @@
 ---
 title: "Introduction"
 description: "Generate character animation videos with the Viggle API"
+icon: "rocket"
 ---
 
-Generate character animation videos with the Viggle API. Bring your own driving video or [**import from Viggle's rich library**](#import-templates) of popular video templates — dances, memes, and more. There are three ways to render: [**On-Demand**](#on-demand-rendering) — send an image and video in one request, [**Preprocessed**](#preprocess-for-speed) — pre-create assets for ~3x faster renders, and [**Live**](#live-rendering) — stream chunks in real-time.
-
 <Tip>
-  **Using an AI agent?** Copy the docs link to give it full API context:
+  **Using an AI agent?** Copy the docs link for full API context:
 </Tip>
 
 ```bash
 https://docs.viggle.ai/llms-full.txt
 ```
 
-## On-Demand Rendering
+## Rendering modes
 
-The simplest way to get started. Send a character image and a driving video in a single request — the API handles everything and returns a rendered video. No setup or preprocessing needed.
+<Tabs>
+  <Tab title="On-Demand" id="on-demand" icon="zap">
+    Send an image + video in one request.
 
-<CodeGroup>
+    <Tip>On-demand renders cost **1 credit/second** of output video. No separate character charge.</Tip>
 
-```python Python
-import requests, time
+    <CodeGroup>
 
-API_KEY = "YOUR_API_KEY"
-BASE = "https://apis.viggle.ai"
-headers = {"Authorization": f"Bearer {API_KEY}"}
+    ```python Python
+    import requests, time
+    API_KEY, BASE = "YOUR_API_KEY", "https://apis.viggle.ai"
+    h = {"Authorization": f"Bearer {API_KEY}"}
+    job = requests.post(f"{BASE}/api/render", headers=h, files={
+        "ref_image": open("character.png", "rb"),
+        "driving_video": open("dance.mp4", "rb"),
+    }).json()
+    while requests.get(f"{BASE}/api/render/{job['job_id']}").json()["status"] != "complete":
+        time.sleep(5)
+    r = requests.get(f"{BASE}/api/render/{job['job_id']}/download", headers=h)
+    open("output.mp4", "wb").write(r.content)
+    ```
 
-# Render — upload image + video directly
-job = requests.post(f"{BASE}/api/render", headers=headers, files={
-    "ref_image": open("character.png", "rb"),
-    "driving_video": open("dance.mp4", "rb"),
-}).json()
+    ```javascript JavaScript
+    const API_KEY = "YOUR_API_KEY", BASE = "https://apis.viggle.ai";
+    const h = { Authorization: `Bearer ${API_KEY}` };
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const form = new FormData();
+    form.append("ref_image", imageFile);
+    form.append("driving_video", videoFile);
+    const job = await fetch(`${BASE}/api/render`, { method: "POST", headers: h, body: form }).then((r) => r.json());
+    while (true) {
+      const s = await fetch(`${BASE}/api/render/${job.job_id}`).then((r) => r.json());
+      if (s.status === "complete") break;
+      await sleep(5000);
+    }
+    const video = await fetch(`${BASE}/api/render/${job.job_id}/download`, { headers: h });
+    require("fs").writeFileSync("output.mp4", Buffer.from(await video.arrayBuffer()));
+    ```
 
-# Poll until complete
-while requests.get(f"{BASE}/api/render/{job['job_id']}").json()["status"] != "complete":
-    time.sleep(5)
+    ```bash cURL
+    curl -X POST "https://apis.viggle.ai/api/render" \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -F "ref_image=@character.png" -F "driving_video=@dance.mp4"
+    curl "https://apis.viggle.ai/api/render/JOB_ID"
+    curl -L "https://apis.viggle.ai/api/render/JOB_ID/download" \
+      -H "Authorization: Bearer YOUR_API_KEY" -o output.mp4
+    ```
 
-# Download
-video = requests.get(f"{BASE}/api/render/{job['job_id']}/download", headers=headers)
-open("output.mp4", "wb").write(video.content)
-```
+    </CodeGroup>
 
-```javascript JavaScript
-const API_KEY = "YOUR_API_KEY";
-const BASE = "https://apis.viggle.ai";
-const headers = { "Authorization": `Bearer ${API_KEY}` };
-const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+    <Card title="On-Demand Guide" icon="zap" href="/guides/on-demand">
+      Render options, polling, and error handling
+    </Card>
+  </Tab>
 
-// Render — upload image + video directly
-const form = new FormData();
-form.append("ref_image", imageFile);
-form.append("driving_video", videoFile);
+  <Tab title="Preprocessed" id="preprocessed" icon="rocket">
+    Create character + scene once (free), then render with IDs for lower latency.
 
-const job = await fetch(`${BASE}/api/render`, {
-  method: "POST", headers, body: form
-}).then(r => r.json());
+    ```python
+    import requests
+    API_KEY, BASE = "YOUR_API_KEY", "https://apis.viggle.ai"
+    h = {"Authorization": f"Bearer {API_KEY}"}
+    char = requests.post(f"{BASE}/api/characters/preprocess", headers=h,
+        files={"image": open("character.png", "rb")}, data={"name": "My Character"}).json()
+    scene = requests.post(f"{BASE}/api/scenes/preprocess", headers=h,
+        files={"video": open("dance.mp4", "rb")}, data={"name": "Dance"}).json()
+    job = requests.post(f"{BASE}/api/render", headers=h, data={
+        "character_id": char["id"], "scene_id": scene["id"],
+    }).json()
+    ```
 
-// Poll until complete
-while (true) {
-  const s = await fetch(`${BASE}/api/render/${job.job_id}`).then(r => r.json());
-  if (s.status === "complete") break;
-  await sleep(5000);
-}
+    <Card title="Preprocessing Guide" icon="rocket" href="/guides/quickstart">
+      Polling, download, and asset reuse
+    </Card>
+  </Tab>
 
-// Download
-const video = await fetch(`${BASE}/api/render/${job.job_id}/download`, { headers });
-require("fs").writeFileSync("output.mp4", Buffer.from(await video.arrayBuffer()));
-```
+  <Tab title="Import Templates" id="import-templates" icon="download">
+    Use templates from [viggle.ai](https://viggle.ai) instead of uploading a driving video.
 
-```bash cURL
-# Render
-curl -X POST "https://apis.viggle.ai/api/render" \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -F "ref_image=@character.png" \
-  -F "driving_video=@dance.mp4"
+    ```python
+    import requests
+    API_KEY, BASE = "YOUR_API_KEY", "https://apis.viggle.ai"
+    h = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
+    scene = requests.post(f"{BASE}/api/scenes/import", headers=h,
+        json={"template_id": "TEMPLATE_ID_FROM_VIGGLE"}).json()
+    ```
 
-# Poll status (no auth needed)
-curl "https://apis.viggle.ai/api/render/JOB_ID"
+    <Card title="Import Templates Guide" icon="download" href="/guides/import-templates">
+      Hot Picks, multi-person templates, character mapping
+    </Card>
+  </Tab>
 
-# Download
-curl -L "https://apis.viggle.ai/api/render/JOB_ID/download" \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -o output.mp4
-```
+  <Tab title="Live Stream" id="live-stream" icon="radio">
+    Long-poll `/poll` for fMP4 chunks as they render—ideal for previews and streaming.
 
-</CodeGroup>
+    ```python
+    import requests
+    API_KEY, BASE, job_id = "YOUR_API_KEY", "https://apis.viggle.ai", "JOB_ID"
+    h = {"Authorization": f"Bearer {API_KEY}"}
+    last_chunk = -1
+    while True:
+        resp = requests.get(f"{BASE}/api/render/{job_id}/poll", headers=h,
+            params={"last_chunk": last_chunk, "timeout": 30}).json()
+        for chunk in resp["new_chunks"]:
+            print(chunk["chunk_id"], chunk["cdn_url"])
+            last_chunk = chunk["chunk_id"]
+        if resp["status"] == "complete":
+            break
+    ```
 
-<Tip>On-demand renders cost **1 credit/second** of output video. No separate character charge.</Tip>
+    <Card title="Live Rendering Guide" icon="play" href="/guides/live-render">
+      MSE playback, long-polling, and fMP4 details
+    </Card>
+  </Tab>
+</Tabs>
 
-<Card title="On-Demand Guide" icon="bolt" href="/guides/on-demand">
-  Full guide with render options and error handling
-</Card>
-
----
-
-## Preprocess for Speed
-
-For production workflows, pre-create characters and scenes ahead of time to **cut render latency by ~3x**. The API extracts character embeddings and motion data once, then reuses them instantly across unlimited renders — no re-uploading or re-processing needed.
-
-```python
-# 1. Create character once (free, ~5s to process)
-char = requests.post(f"{BASE}/api/characters/preprocess", headers=headers,
-    files={"image": open("character.png", "rb")},
-    data={"name": "My Character"}
-).json()
-
-# 2. Create scene once (free, ~20s to process)
-scene = requests.post(f"{BASE}/api/scenes/preprocess", headers=headers,
-    files={"video": open("dance.mp4", "rb")},
-    data={"name": "Dance"}
-).json()
-
-# 3. Render with stored IDs — skips preprocessing, ~3x faster
-job = requests.post(f"{BASE}/api/render", headers=headers, data={
-    "character_id": char["id"],
-    "scene_id": scene["id"],
-}).json()
-```
-
-<Card title="Preprocessing Guide" icon="rocket" href="/guides/quickstart">
-  Step-by-step guide with polling, download, and asset reuse
-</Card>
-
----
-
-## Import Templates
-
-Use pre-made templates from [viggle.ai](https://viggle.ai) instead of uploading your own driving videos.
+## Quick start
 
 <Steps>
-  <Step title="Browse templates on viggle.ai">
-    Go to [viggle.ai](https://viggle.ai) and browse the **Hot Picks** section.
-
-    <Frame>
-      <img src="/images/import-guide/step1-hot-picks.png" alt="Viggle homepage showing Hot Picks templates" />
-    </Frame>
+  <Step title="Get your API key" icon="key">
+    Create one in the [Viggle Dashboard](https://portal.viggle.ai/api-keys).
   </Step>
-  <Step title="Copy the template ID">
-    Click the **copy icon** next to the template title to copy the ID.
-
-    <Frame>
-      <img src="/images/import-guide/step2-copy-template-id.png" alt="Template detail page with copy ID button" />
-    </Frame>
+  <Step title="Pick a mode" icon="list">
+    Use the **Rendering modes** tabs: **On-Demand** (fastest first render), **Preprocessed** (~3x faster at scale), **Import Templates**, or **Live Stream**.
   </Step>
-  <Step title="Import via API">
-    ```python
-    scene = requests.post(f"{BASE}/api/scenes/import",
-        headers={**headers, "Content-Type": "application/json"},
-        json={"template_id": "TEMPLATE_ID_FROM_VIGGLE"}
-    ).json()
-    # Use scene["id"] with POST /api/render
-    ```
+  <Step title="Render" icon="film">
+    `POST /api/render` — poll `GET /api/render/{job_id}` until `complete`, then download.
   </Step>
 </Steps>
 
-<Card title="Import Templates Guide" icon="download" href="/guides/import-templates">
-  Multi-person templates, character mapping, and full workflow
-</Card>
 
----
+## Resources
 
-## Live Rendering
-
-Instead of waiting for the full video, stream fMP4 chunks as they render. Use long-polling to receive each chunk the moment it's ready — ideal for real-time previews, progressive playback, and streaming applications.
-
-```python
-last_chunk = -1
-while True:
-    resp = requests.get(f"{BASE}/api/render/{job_id}/poll",
-        headers=headers,
-        params={"last_chunk": last_chunk, "timeout": 30}
-    ).json()
-
-    for chunk in resp["new_chunks"]:
-        print(f"Chunk {chunk['chunk_id']}: {chunk['cdn_url']}")
-        last_chunk = chunk["chunk_id"]
-
-    if resp["status"] == "complete":
-        break
-```
-
-<Card title="Live Rendering Guide" icon="play" href="/guides/live-render">
-  MSE browser playback, long-polling, and fMP4 format details
-</Card>
-
----
-
-## Need Help?
-
-<CardGroup cols={2}>
-  <Card title="Discord Community" icon="discord" href="https://discord.com/invite/viggle">
-    Join our community for support and discussions
+<Columns cols={3}>
+  <Card title="Discord Community" icon="message-circle" href="https://discord.com/invite/viggle">
+    Support and discussions
   </Card>
   <Card title="API Reference" icon="code" href="/api-reference/render/overview">
-    Explore the full API documentation
+    Full endpoint documentation
   </Card>
-</CardGroup>
+  <Card title="Pricing" icon="credit-card" href="/pricing">
+    1 credit/sec — about $0.01/sec
+  </Card>
+</Columns>
