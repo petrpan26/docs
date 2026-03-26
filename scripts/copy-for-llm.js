@@ -1,20 +1,11 @@
 (function () {
   "use strict";
 
-  // ---------------------------------------------------------------------------
-  // "Copy for LLM" button — extracts the current doc page as clean markdown-ish
-  // text and copies it to the clipboard so users can paste it into ChatGPT /
-  // Claude / etc.
-  // ---------------------------------------------------------------------------
-
   var BUTTON_ID = "copy-for-llm-btn";
-
-  // Mintlify re-renders content on client-side navigation, so we use a
-  // MutationObserver to re-inject the button whenever the page changes.
+  var MOBILE_BUTTON_ID = "copy-for-llm-btn-mobile";
+  var debounceTimer = null;
 
   function extractPageText() {
-    // Mintlify renders the main article inside <article> or the element with
-    // id "content-area".  Fall back to the first <main> tag.
     var root =
       document.querySelector("article") ||
       document.getElementById("content-area") ||
@@ -22,23 +13,14 @@
 
     if (!root) return "";
 
-    // Clone so we can mutate without affecting the real DOM
     var clone = root.cloneNode(true);
 
-    // ---- Reveal hidden tab panels (CodeGroup) BEFORE cleanup ----
-    // Mintlify's <CodeGroup> renders all language tabs in the DOM but hides
-    // inactive ones with aria-hidden="true" and/or the hidden attribute.
-    // We want ALL code variants (cURL, Python, JS) in the LLM output, so
-    // reveal them before the general aria-hidden purge below.
-
-    // 1. Standard role="tabpanel" panels
     clone.querySelectorAll('[role="tabpanel"]').forEach(function (panel) {
       panel.removeAttribute("aria-hidden");
       panel.removeAttribute("hidden");
       panel.style.removeProperty("display");
     });
 
-    // 2. Any other hidden element that contains a code block
     clone.querySelectorAll('[aria-hidden="true"]').forEach(function (el) {
       if (el.querySelector("pre") || el.tagName.toLowerCase() === "pre") {
         el.removeAttribute("aria-hidden");
@@ -47,15 +29,15 @@
       }
     });
 
-    // Remove elements that are not useful for LLM context
     var selectors = [
       "nav",
       "header",
       "footer",
-      "[aria-hidden='true']",          // safe now — code panels already revealed
+      "[aria-hidden='true']",
       ".copy-for-llm-btn-wrapper",
-      "button",                       // copy-code buttons, tab buttons, etc.
-      "svg",                          // icons
+      ".copy-for-llm-btn-mobile-wrapper",
+      "button",
+      "svg",
       ".sr-only",
       "[data-testid='table-of-contents']",
     ];
@@ -65,10 +47,8 @@
       });
     });
 
-    // --- Build a clean text representation ---
     var lines = [];
 
-    // Page title from <h1> or the frontmatter title shown by Mintlify
     var titleEl =
       document.querySelector("article h1") ||
       document.querySelector("main h1") ||
@@ -78,8 +58,7 @@
       lines.push("");
     }
 
-    // Walk the cloned tree and convert to text
-    function walk(node, depth) {
+    function walk(node) {
       if (node.nodeType === Node.TEXT_NODE) {
         var txt = node.textContent;
         if (txt.trim()) lines.push(txt);
@@ -89,16 +68,14 @@
 
       var tag = node.tagName.toLowerCase();
 
-      // Headings
       if (/^h[2-6]$/.test(tag)) {
         var level = parseInt(tag[1], 10);
         lines.push("");
         lines.push("#".repeat(level) + " " + node.textContent.trim());
         lines.push("");
-        return; // don't recurse into heading children
+        return;
       }
 
-      // Code blocks — preserve as fenced blocks
       if (tag === "pre") {
         var codeEl = node.querySelector("code");
         var lang = "";
@@ -116,23 +93,24 @@
         return;
       }
 
-      // Inline code
-      if (tag === "code" && node.parentElement && node.parentElement.tagName.toLowerCase() !== "pre") {
+      if (
+        tag === "code" &&
+        node.parentElement &&
+        node.parentElement.tagName.toLowerCase() !== "pre"
+      ) {
         lines.push("`" + node.textContent.trim() + "`");
         return;
       }
 
-      // Paragraphs
       if (tag === "p") {
         lines.push("");
         for (var i = 0; i < node.childNodes.length; i++) {
-          walk(node.childNodes[i], depth);
+          walk(node.childNodes[i]);
         }
         lines.push("");
         return;
       }
 
-      // List items
       if (tag === "li") {
         var bullet = "- ";
         var parent = node.parentElement;
@@ -144,7 +122,6 @@
         return;
       }
 
-      // Tables
       if (tag === "table") {
         var rows = node.querySelectorAll("tr");
         rows.forEach(function (row, ri) {
@@ -154,151 +131,265 @@
           });
           lines.push("| " + vals.join(" | ") + " |");
           if (ri === 0) {
-            lines.push("| " + vals.map(function () { return "---"; }).join(" | ") + " |");
+            lines.push(
+              "| " +
+                vals
+                  .map(function () {
+                    return "---";
+                  })
+                  .join(" | ") +
+                " |"
+            );
           }
         });
         lines.push("");
         return;
       }
 
-      // Blockquotes / callouts
       if (tag === "blockquote") {
         lines.push("");
-        var bqText = node.textContent.trim().split("\n").map(function (l) {
-          return "> " + l;
-        }).join("\n");
+        var bqText = node.textContent
+          .trim()
+          .split("\n")
+          .map(function (l) {
+            return "> " + l;
+          })
+          .join("\n");
         lines.push(bqText);
         lines.push("");
         return;
       }
 
-      // Strong / bold
       if (tag === "strong" || tag === "b") {
         lines.push("**" + node.textContent.trim() + "**");
         return;
       }
 
-      // Links
       if (tag === "a") {
         var href = node.getAttribute("href") || "";
         lines.push("[" + node.textContent.trim() + "](" + href + ")");
         return;
       }
 
-      // Generic: recurse into children
       for (var j = 0; j < node.childNodes.length; j++) {
-        walk(node.childNodes[j], depth + 1);
+        walk(node.childNodes[j]);
       }
     }
 
-    // Skip the h1 we already captured
     var children = clone.children;
     for (var k = 0; k < children.length; k++) {
       var child = children[k];
       if (child.tagName && child.tagName.toLowerCase() === "h1") continue;
-      walk(child, 0);
+      walk(child);
     }
 
-    // Clean up excessive blank lines
-    var text = lines
-      .join("\n")
-      .replace(/\n{3,}/g, "\n\n")
-      .trim();
-
-    // Prepend page URL for reference
+    var text = lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
     text = "Source: " + window.location.href + "\n\n" + text;
-
     return text;
   }
 
-  function createButton() {
-    if (document.getElementById(BUTTON_ID)) return;
+  var ICON_SVG =
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+    'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ' +
+    'style="margin-right:6px;flex-shrink:0">' +
+    '<rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>' +
+    '<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>' +
+    "</svg>";
 
-    var wrapper = document.createElement("div");
-    wrapper.className = "copy-for-llm-btn-wrapper";
-    wrapper.style.cssText =
-      "position:fixed;bottom:24px;right:24px;z-index:9999;";
+  function handleCopy(btn) {
+    var text = extractPageText();
+    var span = btn.querySelector("span");
 
-    var btn = document.createElement("button");
-    btn.id = BUTTON_ID;
-    btn.innerHTML =
-      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;vertical-align:middle"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>' +
-      '<span style="vertical-align:middle">Copy for LLM</span>';
+    if (!text) {
+      span.textContent = "Nothing to copy";
+      setTimeout(function () {
+        span.textContent = "Copy page for agent";
+      }, 2000);
+      return;
+    }
+
+    if (!navigator.clipboard || !navigator.clipboard.writeText) {
+      span.textContent = "Copy not supported";
+      setTimeout(function () {
+        span.textContent = "Copy page for agent";
+      }, 2000);
+      return;
+    }
+
+    navigator.clipboard
+      .writeText(text)
+      .then(function () {
+        span.textContent = "Copied!";
+        setTimeout(function () {
+          span.textContent = "Copy page for agent";
+        }, 2000);
+      })
+      .catch(function () {
+        span.textContent = "Copy failed";
+        setTimeout(function () {
+          span.textContent = "Copy page for agent";
+        }, 2000);
+      });
+  }
+
+  var COLOR_DARK = "#00FF41";
+  var COLOR_LIGHT = "#006B24";
+  var RGBA_DARK = "0,255,65";
+  var RGBA_LIGHT = "0,107,36";
+  var EASING = "cubic-bezier(0.16,1,0.3,1)";
+
+  function isDarkMode() {
+    return (
+      document.documentElement.classList.contains("dark") ||
+      document.documentElement.getAttribute("data-theme") === "dark"
+    );
+  }
+
+  function accentColor() {
+    return isDarkMode() ? COLOR_DARK : COLOR_LIGHT;
+  }
+
+  function accentRgba() {
+    return isDarkMode() ? RGBA_DARK : RGBA_LIGHT;
+  }
+
+  function prefersReducedMotion() {
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  }
+
+  function transitionValue() {
+    if (prefersReducedMotion()) return "none";
+    return (
+      "background 0.15s " + EASING + "," +
+      "color 0.15s " + EASING + "," +
+      "border-color 0.15s " + EASING
+    );
+  }
+
+  function applyBtnStyles(btn) {
+    var c = accentColor();
+    var rgba = accentRgba();
     btn.style.cssText = [
       "display:inline-flex",
       "align-items:center",
-      "padding:10px 16px",
-      "border:1px solid rgba(200,255,0,0.4)",
-      "border-radius:8px",
-      "background:rgba(14,14,16,0.85)",
-      "color:#c8ff00",
-      "font-size:13px",
-      "font-weight:500",
+      "padding:8px 14px",
+      "border:1px solid " + c,
+      "border-radius:2px",
+      "background:rgba(" + rgba + ",0.08)",
+      "color:" + c,
+      "font-size:0.72rem",
+      "font-weight:600",
       "font-family:inherit",
       "cursor:pointer",
-      "backdrop-filter:blur(12px)",
-      "-webkit-backdrop-filter:blur(12px)",
-      "box-shadow:0 2px 12px rgba(0,0,0,0.3)",
-      "transition:all 0.2s ease",
+      "transition:" + transitionValue(),
+      "width:fit-content",
+      "box-sizing:border-box",
+      "letter-spacing:0.02em",
     ].join(";");
-
-    btn.addEventListener("mouseenter", function () {
-      btn.style.borderColor = "rgba(200,255,0,0.8)";
-      btn.style.boxShadow = "0 2px 20px rgba(200,255,0,0.15)";
-    });
-    btn.addEventListener("mouseleave", function () {
-      btn.style.borderColor = "rgba(200,255,0,0.4)";
-      btn.style.boxShadow = "0 2px 12px rgba(0,0,0,0.3)";
-    });
-
-    btn.addEventListener("click", function () {
-      var text = extractPageText();
-      if (!text) {
-        btn.querySelector("span").textContent = "Nothing to copy";
-        setTimeout(function () {
-          btn.querySelector("span").textContent = "Copy for LLM";
-        }, 2000);
-        return;
-      }
-
-      navigator.clipboard.writeText(text).then(function () {
-        btn.querySelector("span").textContent = "Copied!";
-        btn.style.borderColor = "#c8ff00";
-        setTimeout(function () {
-          btn.querySelector("span").textContent = "Copy for LLM";
-          btn.style.borderColor = "rgba(200,255,0,0.4)";
-        }, 2000);
-      }).catch(function () {
-        // Fallback for older browsers
-        var ta = document.createElement("textarea");
-        ta.value = text;
-        ta.style.cssText = "position:fixed;left:-9999px";
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand("copy");
-        document.body.removeChild(ta);
-
-        btn.querySelector("span").textContent = "Copied!";
-        setTimeout(function () {
-          btn.querySelector("span").textContent = "Copy for LLM";
-        }, 2000);
-      });
-    });
-
-    wrapper.appendChild(btn);
-    document.body.appendChild(wrapper);
   }
 
-  // Inject on initial load
+  function makeBtnEl(id) {
+    var btn = document.createElement("button");
+    btn.id = id;
+    btn.type = "button";
+    btn.innerHTML =
+      ICON_SVG + '<span aria-live="polite">Copy page for agent</span>';
+    applyBtnStyles(btn);
+
+    btn.addEventListener("mouseenter", function () {
+      btn.style.background = accentColor();
+      btn.style.color = "#000";
+    });
+    btn.addEventListener("mouseleave", function () {
+      btn.style.background = "rgba(" + accentRgba() + ",0.08)";
+      btn.style.color = accentColor();
+    });
+    btn.addEventListener("click", function () {
+      handleCopy(btn);
+    });
+
+    return btn;
+  }
+
+  function isTocVisible() {
+    var tocLayout = document.getElementById("table-of-contents-layout");
+    if (!tocLayout) return false;
+    var rect = tocLayout.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0;
+  }
+
+  function syncMobileVisibility() {
+    var mobileWrapper = document.querySelector(
+      ".copy-for-llm-btn-mobile-wrapper"
+    );
+    if (!mobileWrapper) return;
+    mobileWrapper.style.display = isTocVisible() ? "none" : "flex";
+  }
+
+  function createButton() {
+    /* ---- Desktop: inside the ToC sidebar ---- */
+    if (!document.getElementById(BUTTON_ID)) {
+      var wrapper = document.createElement("div");
+      wrapper.className = "copy-for-llm-btn-wrapper";
+      wrapper.style.marginBottom = "12px";
+      wrapper.appendChild(makeBtnEl(BUTTON_ID));
+
+      var tocLayout = document.getElementById("table-of-contents-layout");
+      if (tocLayout) {
+        tocLayout.insertBefore(wrapper, tocLayout.firstChild);
+      } else {
+        var toc = document.getElementById("table-of-contents");
+        if (toc && toc.parentElement) {
+          toc.parentElement.insertBefore(wrapper, toc);
+        }
+      }
+    }
+
+    /* ---- Mobile/Tablet: inside the content area ---- */
+    if (!document.getElementById(MOBILE_BUTTON_ID)) {
+      var contentArea = document.getElementById("content-area");
+      if (contentArea) {
+        var mobileWrapper = document.createElement("div");
+        mobileWrapper.className = "copy-for-llm-btn-mobile-wrapper";
+        mobileWrapper.appendChild(makeBtnEl(MOBILE_BUTTON_ID));
+        contentArea.insertBefore(mobileWrapper, contentArea.firstChild);
+      }
+    }
+
+    syncMobileVisibility();
+  }
+
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", createButton);
   } else {
     createButton();
   }
 
-  // Re-inject after Mintlify client-side navigations (SPA)
-  var observer = new MutationObserver(function () {
-    createButton();
+  function debouncedCreate() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(createButton, 200);
+  }
+
+  new MutationObserver(debouncedCreate).observe(document.body, {
+    childList: true,
+    subtree: true,
   });
-  observer.observe(document.body, { childList: true, subtree: true });
+
+  var resizeTimer = null;
+  window.addEventListener("resize", function () {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(syncMobileVisibility, 100);
+  });
+
+  function refreshBtnColors() {
+    [BUTTON_ID, MOBILE_BUTTON_ID].forEach(function (id) {
+      var btn = document.getElementById(id);
+      if (btn) applyBtnStyles(btn);
+    });
+  }
+
+  new MutationObserver(refreshBtnColors).observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["class", "data-theme"],
+  });
 })();

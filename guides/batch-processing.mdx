@@ -1,224 +1,189 @@
 ---
 title: 'Batch Processing'
 description: 'Render multiple videos concurrently with efficient job management'
-icon: "list"
 ---
 
-Submit multiple render jobs at once and process them in parallel. This guide covers patterns for rendering batches of videos efficiently.
+Submit multiple render jobs at once and process them in parallel.
 
-## Concurrent Job Submission
-
-Submit multiple jobs without waiting for each to complete:
-
-```python Python
-import requests
-import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
-
-API_KEY = "YOUR_API_KEY"
-BASE = "https://apis.viggle.ai"
-headers = {"Authorization": f"Bearer {API_KEY}"}
-
-# Define your batch
-renders = [
-    {"character_id": "char_alice", "scene_id": "scene_dance"},
-    {"character_id": "char_bob",   "scene_id": "scene_dance"},
-    {"character_id": "char_alice", "scene_id": "scene_walk"},
-    {"character_id": "char_carol", "scene_id": "scene_run"},
-]
-
-# Submit all jobs
-jobs = []
-for render in renders:
-    job = requests.post(f"{BASE}/api/render", headers=headers, data=render).json()
-    jobs.append({"job_id": job["job_id"], **render})
-    print(f"Submitted: {job['job_id']} ({render['character_id']} + {render['scene_id']})")
-
-print(f"\n{len(jobs)} jobs submitted")
+```mermaid
+graph LR
+    A[Define batch] --> B[Submit jobs]
+    B --> C[Poll in parallel]
+    C --> D[Download results]
 ```
 
-## Wait for All Jobs
+## Workflow
 
-Poll all jobs concurrently and download as they complete:
+<Steps>
+  <Step title="Submit jobs" icon="upload">
+    Submit multiple jobs without waiting for each to complete:
 
-```python Python
-def wait_and_download(job_info):
-    """Poll a single job until complete, then download."""
-    job_id = job_info["job_id"]
+    ```python
+    import requests, time
+    from concurrent.futures import ThreadPoolExecutor, as_completed
 
-    # Poll until complete (no auth needed for status)
+    API_KEY, BASE = "YOUR_API_KEY", "https://apis.viggle.ai"
+    headers = {"Authorization": f"Bearer {API_KEY}"}
+
+    renders = [
+        {"character_id": "char_alice", "scene_id": "scene_dance"},
+        {"character_id": "char_bob",   "scene_id": "scene_dance"},
+        {"character_id": "char_alice", "scene_id": "scene_walk"},
+        {"character_id": "char_carol", "scene_id": "scene_run"},
+    ]
+
+    jobs = []
+    for render in renders:
+        job = requests.post(f"{BASE}/api/render", headers=headers, data=render).json()
+        jobs.append({"job_id": job["job_id"], **render})
+        print(f"Submitted: {job['job_id']}")
+    ```
+  </Step>
+
+  <Step title="Poll and download" icon="download">
+    Poll all jobs concurrently and download as they complete:
+
+    ```python
+    def wait_and_download(job_info):
+        job_id = job_info["job_id"]
+        while True:
+            status = requests.get(f"{BASE}/api/render/{job_id}").json()
+            if status["status"] == "complete": break
+            elif status["status"] == "failed":
+                return {"job_id": job_id, "error": status.get("error")}
+            time.sleep(5)
+
+        video = requests.get(f"{BASE}/api/render/{job_id}/download", headers=headers)
+        filename = f"{job_info['character_id']}_{job_info['scene_id']}.mp4"
+        open(filename, "wb").write(video.content)
+        return {"job_id": job_id, "filename": filename}
+
+    with ThreadPoolExecutor(max_workers=5) as pool:
+        futures = {pool.submit(wait_and_download, j): j for j in jobs}
+        for future in as_completed(futures):
+            result = future.result()
+            if "error" in result: print(f"FAILED {result['job_id']}: {result['error']}")
+            else: print(f"Downloaded: {result['filename']}")
+    ```
+  </Step>
+
+  <Step title="Multi-character batch" icon="users">
+    Render the same multi-person scene with different character combinations:
+
+    ```python
+    import json
+
+    SCENE_ID = "scene_group_dance"
+    combinations = [
+        {"person_a": "char_alice", "person_b": "char_bob"},
+        {"person_a": "char_carol", "person_b": "char_dave"},
+    ]
+
+    for i, mapping in enumerate(combinations):
+        job = requests.post(f"{BASE}/api/render", headers=headers, data={
+            "scene_id": SCENE_ID,
+            "character_mapping": json.dumps(mapping),
+        }).json()
+        print(f"Combo {i+1}: {job['job_id']}")
+    ```
+  </Step>
+</Steps>
+
+## Job management
+
+<AccordionGroup>
+  <Accordion title="Check all job statuses">
+    ```python
+    def check_batch_status(job_ids):
+        results = {"queued": 0, "processing": 0, "rendering": 0, "complete": 0, "failed": 0}
+        for job_id in job_ids:
+            status = requests.get(f"{BASE}/api/render/{job_id}").json()
+            results[status["status"]] += 1
+        return results
+
     while True:
-        status = requests.get(f"{BASE}/api/render/{job_id}").json()
-        if status["status"] == "complete":
-            break
-        elif status["status"] == "failed":
-            return {"job_id": job_id, "error": status.get("error")}
-        time.sleep(5)
+        counts = check_batch_status([j["job_id"] for j in jobs])
+        print(counts)
+        if counts["complete"] + counts["failed"] == len(jobs): break
+        time.sleep(10)
+    ```
+  </Accordion>
 
-    # Download (auth required)
-    video = requests.get(f"{BASE}/api/render/{job_id}/download", headers=headers)
-    filename = f"{job_info['character_id']}_{job_info['scene_id']}.mp4"
-    with open(filename, "wb") as f:
-        f.write(video.content)
+  <Accordion title="Cancel all pending jobs">
+    ```python
+    for j in jobs:
+        status = requests.get(f"{BASE}/api/render/{j['job_id']}").json()
+        if status["status"] not in ("complete", "failed"):
+            requests.delete(f"{BASE}/api/render/{j['job_id']}", headers=headers)
+            print(f"Cancelled: {j['job_id']}")
+    ```
+  </Accordion>
 
-    return {"job_id": job_id, "filename": filename}
+  <Accordion title="Complete batch script">
+    ```python
+    import requests, time, json
+    from concurrent.futures import ThreadPoolExecutor, as_completed
 
+    API_KEY, BASE = "YOUR_API_KEY", "https://apis.viggle.ai"
+    headers = {"Authorization": f"Bearer {API_KEY}"}
 
-# Process all jobs in parallel
-with ThreadPoolExecutor(max_workers=5) as pool:
-    futures = {pool.submit(wait_and_download, job): job for job in jobs}
+    def render_and_download(character_id, scene_id, output_name):
+        job = requests.post(f"{BASE}/api/render", headers=headers, data={
+            "character_id": character_id, "scene_id": scene_id,
+        }).json()
+        job_id = job["job_id"]
+        while True:
+            status = requests.get(f"{BASE}/api/render/{job_id}").json()
+            if status["status"] == "complete": break
+            elif status["status"] == "failed":
+                raise Exception(f"Job {job_id} failed: {status.get('error')}")
+            time.sleep(5)
+        video = requests.get(f"{BASE}/api/render/{job_id}/download", headers=headers)
+        open(f"{output_name}.mp4", "wb").write(video.content)
+        return f"{output_name}.mp4"
 
-    for future in as_completed(futures):
-        result = future.result()
-        if "error" in result:
-            print(f"FAILED {result['job_id']}: {result['error']}")
-        else:
-            print(f"Downloaded: {result['filename']}")
+    batch = [
+        ("char_alice", "scene_dance", "alice_dance"),
+        ("char_bob", "scene_dance", "bob_dance"),
+        ("char_alice", "scene_walk", "alice_walk"),
+    ]
 
-print("All jobs complete!")
-```
-
-## Multi-Character Batch
-
-Render the same multi-person scene with different character combinations:
-
-```python Python
-import json
-
-SCENE_ID = "scene_group_dance"
-
-# Different character combinations for the same scene
-combinations = [
-    {"person_a": "char_alice", "person_b": "char_bob"},
-    {"person_a": "char_carol", "person_b": "char_dave"},
-    {"person_a": "char_alice", "person_b": "char_carol"},
-]
-
-jobs = []
-for i, mapping in enumerate(combinations):
-    job = requests.post(f"{BASE}/api/render", headers=headers, data={
-        "scene_id": SCENE_ID,
-        "character_mapping": json.dumps(mapping),
-    }).json()
-    jobs.append(job["job_id"])
-    print(f"Combo {i+1}: {job['job_id']}")
-```
-
-## Job Management
-
-### Check All Job Statuses
-
-```python Python
-def check_batch_status(job_ids):
-    """Check status of all jobs in a batch."""
-    results = {"queued": 0, "processing": 0, "rendering": 0, "complete": 0, "failed": 0}
-
-    for job_id in job_ids:
-        status = requests.get(f"{BASE}/api/render/{job_id}").json()
-        results[status["status"]] += 1
-
-    return results
-
-# Check every 10 seconds
-while True:
-    counts = check_batch_status(job_ids)
-    print(f"Queued: {counts['queued']} | Processing: {counts['processing']} | "
-          f"Rendering: {counts['rendering']} | Complete: {counts['complete']} | "
-          f"Failed: {counts['failed']}")
-
-    if counts["complete"] + counts["failed"] == len(job_ids):
-        break
-    time.sleep(10)
-```
-
-### Cancel All Pending Jobs
-
-```python Python
-for job_id in job_ids:
-    status = requests.get(f"{BASE}/api/render/{job_id}").json()
-    if status["status"] not in ("complete", "failed"):
-        requests.delete(f"{BASE}/api/render/{job_id}", headers=headers)
-        print(f"Cancelled: {job_id}")
-```
-
-## Complete Batch Script
-
-```python Python
-import requests
-import time
-import json
-from concurrent.futures import ThreadPoolExecutor, as_completed
-
-API_KEY = "YOUR_API_KEY"
-BASE = "https://apis.viggle.ai"
-headers = {"Authorization": f"Bearer {API_KEY}"}
-
-def render_and_download(character_id, scene_id, output_name):
-    """Submit, wait, and download a single render job."""
-    # Submit
-    job = requests.post(f"{BASE}/api/render", headers=headers, data={
-        "character_id": character_id,
-        "scene_id": scene_id,
-    }).json()
-    job_id = job["job_id"]
-
-    # Wait
-    while True:
-        status = requests.get(f"{BASE}/api/render/{job_id}").json()
-        if status["status"] == "complete":
-            break
-        elif status["status"] == "failed":
-            raise Exception(f"Job {job_id} failed: {status.get('error')}")
-        time.sleep(5)
-
-    # Download
-    video = requests.get(f"{BASE}/api/render/{job_id}/download", headers=headers)
-    with open(f"{output_name}.mp4", "wb") as f:
-        f.write(video.content)
-    return f"{output_name}.mp4"
-
-
-# Batch definition
-batch = [
-    ("char_alice", "scene_dance", "alice_dance"),
-    ("char_bob", "scene_dance", "bob_dance"),
-    ("char_alice", "scene_walk", "alice_walk"),
-]
-
-# Run in parallel
-print(f"Starting {len(batch)} renders...")
-with ThreadPoolExecutor(max_workers=5) as pool:
-    futures = {
-        pool.submit(render_and_download, *args): args[2]
-        for args in batch
-    }
-    for future in as_completed(futures):
-        name = futures[future]
-        try:
-            filename = future.result()
-            print(f"Done: {filename}")
-        except Exception as e:
-            print(f"Failed: {name} - {e}")
-
-print("Batch complete!")
-```
+    with ThreadPoolExecutor(max_workers=5) as pool:
+        futures = {pool.submit(render_and_download, *a): a[2] for a in batch}
+        for f in as_completed(futures):
+            try: print(f"Done: {f.result()}")
+            except Exception as e: print(f"Failed: {futures[f]} - {e}")
+    ```
+  </Accordion>
+</AccordionGroup>
 
 ## Tips
 
 <AccordionGroup>
   <Accordion title="Respect rate limits">
-    Don't submit hundreds of jobs simultaneously. Space submissions with a short delay, or submit in batches of 5-10.
+    Space submissions with a short delay, or submit in batches of 5-10. Don't submit hundreds simultaneously.
   </Accordion>
-
   <Accordion title="Use fast mode for time-sensitive batches">
-    If you need results quickly and have the budget, enable `fast=true` on each job for faster rendering.
+    Enable `fast=true` on each job for faster rendering when capacity is available.
   </Accordion>
-
   <Accordion title="Handle failures gracefully">
-    Always check for `failed` status and implement retry logic. A common pattern is to retry failed jobs once with a short delay.
-  </Accordion>
-
-  <Accordion title="Clean up completed jobs">
-    After downloading, consider deleting completed jobs with `DELETE /api/render/{job_id}` to free up resources.
+    Always check for `failed` status. Retry failed jobs once with a short delay.
   </Accordion>
 </AccordionGroup>
+
+## What's next?
+
+<CardGroup cols={2}>
+  <Card title="On-Demand Rendering" icon="zap" href="/guides/on-demand">
+    Render without preprocessing
+  </Card>
+  <Card title="Preprocessing Guide" icon="rocket" href="/guides/quickstart">
+    Pre-create assets for 3x faster renders
+  </Card>
+  <Card title="Live Rendering" icon="radio" href="/guides/live-render">
+    Stream video chunks in real-time
+  </Card>
+  <Card title="Render Options" icon="gauge" href="/render-options">
+    Background mode, fast mode, and more
+  </Card>
+</CardGroup>

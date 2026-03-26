@@ -1,15 +1,14 @@
 ---
 title: 'Render Options'
 description: 'Configure video generation settings'
-icon: "sliders"
 ---
 
-Configure video generation by passing form fields when creating a render job via `POST /api/render` (multipart/form-data). All options are optional with sensible defaults.
+Pass optional form fields when creating a render job via `POST /api/render`. All options have sensible defaults.
 
-## Available Options
+## Available options
 
 <ParamField body="model" type="string" default="V4_Preview">
-  The rendering model. Currently only `V4_Preview` is available. This field is optional — omit it to use the default. New models will be added in future releases.
+  The rendering model. Currently only `V4_Preview` is available. New models will be added in future releases.
 </ParamField>
 
 <ParamField body="background_mode" type="string" default="original">
@@ -19,98 +18,81 @@ Configure video generation by passing form fields when creating a render job via
   |-------|-------------|
   | `original` | Keep the original video background (default) |
   | `solid` | Replace with solid color (use with `bg_color`) |
-  | `transparent` | Transparent background with separate mask video for compositing |
+  | `transparent` | Separate mask video for compositing |
 </ParamField>
 
 <ParamField body="bg_color" type="string" default="0,255,0">
-  RGB string for solid background color. Only used when `background_mode` is `solid`. Format: `"R,G,B"` (comma-separated 0–255 values, not hex).
-
-  ```
-  bg_color=0,255,0       # Green screen
-  bg_color=0,0,0         # Black
-  bg_color=255,255,255   # White
-  ```
+  RGB string for solid background. Only used when `background_mode` is `solid`. Format: `"R,G,B"` (0-255, not hex).
 </ParamField>
 
 <ParamField body="fast" type="boolean" default="false">
   Enable fast mode for faster rendering.
 
-  <Warning>
-    Fast mode requires available capacity. If capacity is unavailable, you'll receive a `503` error. Either retry with `fast=false` or wait for capacity.
-  </Warning>
+  <Warning>Fast mode requires available capacity. Returns `503` if unavailable -- retry with `fast=false` or wait.</Warning>
 </ParamField>
 
+## Examples
 
+<Tabs>
+  <Tab title="Default" icon="play">
+    Original background, standard speed.
 
-## Example Usage
+    ```bash
+    curl -X POST "https://apis.viggle.ai/api/render" \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -d "character_id=char_xxx" -d "scene_id=scene_xxx"
+    ```
+  </Tab>
+  <Tab title="Green Screen" icon="image">
+    Solid green background for chroma keying.
 
-### Default Options
+    ```bash
+    curl -X POST "https://apis.viggle.ai/api/render" \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -d "character_id=char_xxx" -d "scene_id=scene_xxx" \
+      -d "background_mode=solid" -d "bg_color=0,255,0"
+    ```
+  </Tab>
+  <Tab title="Fast" icon="zap">
+    Priority rendering when capacity is available.
 
-```bash
-curl -X POST "https://apis.viggle.ai/api/render" \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -d "character_id=char_xxx" \
-  -d "scene_id=scene_xxx"
-```
+    ```bash
+    curl -X POST "https://apis.viggle.ai/api/render" \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -d "character_id=char_xxx" -d "scene_id=scene_xxx" \
+      -d "fast=true"
+    ```
+  </Tab>
+  <Tab title="Transparent" icon="scissors">
+    Generates main video + mask video for compositing.
 
-Uses default original background.
+    ```bash
+    curl -X POST "https://apis.viggle.ai/api/render" \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -d "character_id=char_xxx" -d "scene_id=scene_xxx" \
+      -d "background_mode=transparent"
+    ```
+  </Tab>
+</Tabs>
 
-### Green Screen
-
-```bash
-curl -X POST "https://apis.viggle.ai/api/render" \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -d "character_id=char_xxx" \
-  -d "scene_id=scene_xxx" \
-  -d "background_mode=solid" \
-  -d "bg_color=0,255,0"
-```
-
-### Fast Processing
-
-```bash
-curl -X POST "https://apis.viggle.ai/api/render" \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -d "character_id=char_xxx" \
-  -d "scene_id=scene_xxx" \
-  -d "fast=true"
-```
-
-### Transparent for Compositing
-
-```bash
-curl -X POST "https://apis.viggle.ai/api/render" \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -d "character_id=char_xxx" \
-  -d "scene_id=scene_xxx" \
-  -d "background_mode=transparent"
-```
-
-## Background Mode Comparison
+## Background mode comparison
 
 | Mode | Use Case | Output |
 |------|----------|--------|
-| `original` | General use, keep scene context | Original video background preserved (default) |
-| `solid` | Green screen, compositing | Solid color background for easy keying |
-| `transparent` | Professional compositing | Black background video + separate mask video for layering in video editors |
+| `original` | General use, keep scene context | Original background preserved |
+| `solid` | Green screen, compositing | Solid color background |
+| `transparent` | Professional compositing | Black bg video + separate mask video |
 
-## Best Practices
+## Best practices
 
 <AccordionGroup>
   <Accordion title="Background selection">
-    - Use **original** (default) when you want the scene context preserved
-    - Use **solid** or **transparent** when compositing in video editors
+    Use **original** when you want scene context. Use **solid** or **transparent** when compositing in video editors.
   </Accordion>
-
   <Accordion title="Transparent mode and mask">
-    When using `background_mode=transparent`, the API generates two outputs:
-    - **Main video**: Character rendered on a black background
-    - **Mask video**: Grayscale video (white = character, black = background)
-
-    Use both files in your video editor to composite the character onto any background. The mask download URL is returned in the job status response as `mask_cdn_url`.
+    Generates two outputs: main video (character on black) and mask video (white = character). Use both in your editor. See [Compositing Guide](/guides/compositing).
   </Accordion>
-
   <Accordion title="Performance optimization">
-    - Enable **fast** mode for time-sensitive renders when capacity is available
+    Enable **fast** mode for time-sensitive renders when capacity is available.
   </Accordion>
 </AccordionGroup>

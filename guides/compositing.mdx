@@ -1,194 +1,136 @@
 ---
 title: 'Compositing with Transparent Mode'
 description: 'Use transparent background mode and mask video for professional compositing'
-icon: "scissors"
 ---
 
-When you render with `background_mode=transparent`, the API generates two outputs:
-
-- **Main video**: Character rendered on a black background
-- **Mask video**: Grayscale video where white pixels represent the character and black pixels represent the background
-
-Use both files together in your video editor to composite the character onto any background.
-
-## How It Works
+Render with `background_mode=transparent` to get a main video + mask video for compositing onto any background.
 
 ```mermaid
 graph LR
-    A[Render with transparent mode] --> B[Main Video<br/>Character on black bg]
-    A --> C[Mask Video<br/>White = character]
+    A["Render (transparent)"] --> B[Main Video]
+    A --> C[Mask Video]
     B --> D[Video Editor]
     C --> D
-    D --> E[Final Composite<br/>Character on custom bg]
+    D --> E[Final Composite]
 ```
 
-## Step 1: Render with Transparent Mode
+## Workflow
 
-<CodeGroup>
+<Steps>
+  <Step title="Render with transparent mode" icon="play">
+    <CodeGroup>
 
-```python Python
-import requests
+    ```python Python
+    import requests, time
+    API_KEY, BASE = "YOUR_API_KEY", "https://apis.viggle.ai"
+    headers = {"Authorization": f"Bearer {API_KEY}"}
 
-API_KEY = "YOUR_API_KEY"
-BASE = "https://apis.viggle.ai"
-headers = {"Authorization": f"Bearer {API_KEY}"}
+    job = requests.post(f"{BASE}/api/render", headers=headers, data={
+        "character_id": "char_xxx",
+        "scene_id": "scene_xxx",
+        "background_mode": "transparent",
+    }).json()
+    print(f"Job ID: {job['job_id']}")
+    ```
 
-job = requests.post(f"{BASE}/api/render", headers=headers, data={
-    "character_id": "char_xxx",
-    "scene_id": "scene_xxx",
-    "background_mode": "transparent",
-}).json()
+    ```bash cURL
+    curl -X POST "https://apis.viggle.ai/api/render" \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -d "character_id=char_xxx" -d "scene_id=scene_xxx" \
+      -d "background_mode=transparent"
+    ```
 
-print(f"Job ID: {job['job_id']}")
-```
+    </CodeGroup>
+  </Step>
 
-```bash cURL
-curl -X POST "https://apis.viggle.ai/api/render" \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -d "character_id=char_xxx" \
-  -d "scene_id=scene_xxx" \
-  -d "background_mode=transparent"
-```
+  <Step title="Wait and check for mask URL" icon="clock">
+    The completed job includes both video and mask URLs.
 
-</CodeGroup>
+    ```python
+    while True:
+        status = requests.get(f"{BASE}/api/render/{job['job_id']}").json()
+        if status["status"] == "complete":
+            print(f"Video: {status['cdn_url']}")
+            print(f"Mask:  {status['mask_cdn_url']}")
+            break
+        elif status["status"] == "failed": raise Exception(status.get("error"))
+        time.sleep(5)
+    ```
+  </Step>
 
-## Step 2: Wait and Check for Mask URL
+  <Step title="Download both files" icon="download">
+    <CodeGroup>
 
-When the job completes, the response includes both the main video URL and the mask video URL.
+    ```python Python
+    for endpoint, filename in [("download", "character.mp4"), ("download/mask", "character_mask.mp4")]:
+        resp = requests.get(f"{BASE}/api/render/{job['job_id']}/{endpoint}", headers=headers)
+        open(filename, "wb").write(resp.content)
+        print(f"Saved {filename}")
+    ```
 
-```python Python
-import time
+    ```bash cURL
+    curl -L "https://apis.viggle.ai/api/render/JOB_ID/download" \
+      -H "Authorization: Bearer YOUR_API_KEY" -o character.mp4
+    curl -L "https://apis.viggle.ai/api/render/JOB_ID/download/mask" \
+      -H "Authorization: Bearer YOUR_API_KEY" -o character_mask.mp4
+    ```
 
-while True:
-    status = requests.get(f"{BASE}/api/render/{job['job_id']}").json()
-    if status["status"] == "complete":
-        print(f"Video:  {status['cdn_url']}")
-        print(f"Mask:   {status['mask_cdn_url']}")
-        print(f"Download mask: {status['mask_download_url']}")
-        break
-    elif status["status"] == "failed":
-        raise Exception(status.get("error"))
-    time.sleep(5)
-```
+    </CodeGroup>
+  </Step>
 
-**Example response when complete:**
+  <Step title="Composite in your editor" icon="film">
+    <Tabs>
+      <Tab title="After Effects">
+        1. Import `character.mp4` and `character_mask.mp4`
+        2. Place `character.mp4` above your background layer
+        3. Add `character_mask.mp4` as a **Track Matte** (Luma Matte)
+        4. Character composites over your custom background
+      </Tab>
+      <Tab title="DaVinci Resolve">
+        1. Place background on V1, `character.mp4` on V2
+        2. Add `character_mask.mp4` in Fusion as alpha input
+        3. Use **MatteControl** node to apply the mask
+      </Tab>
+      <Tab title="FFmpeg">
+        ```bash
+        ffmpeg -i background.mp4 -i character.mp4 -i character_mask.mp4 \
+          -filter_complex "[2:v]format=gray[mask];[1:v][mask]alphamerge[fg];[0:v][fg]overlay=0:0" \
+          -c:v libx264 -preset fast composited_output.mp4
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+</Steps>
 
-```json
-{
-  "job_id": "job_abc123xyz",
-  "status": "complete",
-  "cdn_url": "https://assets.viggle.ai/videos/job_abc123xyz/output.mp4",
-  "mask_cdn_url": "https://assets.viggle.ai/videos/job_abc123xyz/output_mask.mp4",
-  "mask_download_url": "/api/render/job_abc123xyz/download/mask",
-  "progress": { "completed_chunks": 5, "total_chunks": 5, "percent": 100.0 }
-}
-```
+## Complete script
 
-## Step 3: Download Both Files
+<Accordion title="Full Python script">
+  ```python
+  import requests, time
 
-<CodeGroup>
+  API_KEY, BASE = "YOUR_API_KEY", "https://apis.viggle.ai"
+  headers = {"Authorization": f"Bearer {API_KEY}"}
 
-```python Python
-# Download main video
-video = requests.get(
-    f"{BASE}/api/render/{job['job_id']}/download",
-    headers=headers
-)
-with open("character.mp4", "wb") as f:
-    f.write(video.content)
+  job = requests.post(f"{BASE}/api/render", headers=headers, data={
+      "character_id": "char_xxx", "scene_id": "scene_xxx",
+      "background_mode": "transparent",
+  }).json()
 
-# Download mask video
-mask = requests.get(
-    f"{BASE}/api/render/{job['job_id']}/download/mask",
-    headers=headers
-)
-with open("character_mask.mp4", "wb") as f:
-    f.write(mask.content)
+  while True:
+      status = requests.get(f"{BASE}/api/render/{job['job_id']}").json()
+      if status["status"] == "complete": break
+      elif status["status"] == "failed": raise Exception(status.get("error"))
+      time.sleep(5)
 
-print("Downloaded character.mp4 and character_mask.mp4")
-```
-
-```bash cURL
-# Download main video
-curl -L "https://apis.viggle.ai/api/render/JOB_ID/download" \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -o character.mp4
-
-# Download mask video
-curl -L "https://apis.viggle.ai/api/render/JOB_ID/download/mask" \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -o character_mask.mp4
-```
-
-</CodeGroup>
-
-## Step 4: Composite in Your Editor
-
-### After Effects
-
-1. Import both `character.mp4` and `character_mask.mp4`
-2. Place `character.mp4` on a layer above your background
-3. Add `character_mask.mp4` as a **Track Matte** (Luma Matte) for the character layer
-4. The character will now appear composited over your custom background
-
-### DaVinci Resolve
-
-1. Place your background on V1 and `character.mp4` on V2
-2. Add `character_mask.mp4` to the Fusion page as an alpha input
-3. Use the **MatteControl** node to apply the mask
-
-### FFmpeg (Programmatic)
-
-Composite the character onto a custom background using ffmpeg:
-
-```bash
-ffmpeg -i background.mp4 -i character.mp4 -i character_mask.mp4 \
-  -filter_complex "[2:v]format=gray[mask];[1:v][mask]alphamerge[fg];[0:v][fg]overlay=0:0" \
-  -c:v libx264 -preset fast \
-  composited_output.mp4
-```
-
-## Complete Script
-
-```python Python
-import requests
-import time
-
-API_KEY = "YOUR_API_KEY"
-BASE = "https://apis.viggle.ai"
-headers = {"Authorization": f"Bearer {API_KEY}"}
-
-# 1. Create transparent render
-job = requests.post(f"{BASE}/api/render", headers=headers, data={
-    "character_id": "char_xxx",
-    "scene_id": "scene_xxx",
-    "background_mode": "transparent",
-}).json()
-print(f"Job: {job['job_id']}")
-
-# 2. Wait for completion
-while True:
-    status = requests.get(f"{BASE}/api/render/{job['job_id']}").json()
-    if status["status"] == "complete":
-        break
-    elif status["status"] == "failed":
-        raise Exception(status.get("error"))
-    time.sleep(5)
-
-# 3. Download video + mask
-for endpoint, filename in [("download", "character.mp4"), ("download/mask", "character_mask.mp4")]:
-    resp = requests.get(f"{BASE}/api/render/{job['job_id']}/{endpoint}", headers=headers)
-    with open(filename, "wb") as f:
-        f.write(resp.content)
-    print(f"Saved {filename}")
-
-print("Ready for compositing!")
-```
+  for endpoint, filename in [("download", "character.mp4"), ("download/mask", "character_mask.mp4")]:
+      resp = requests.get(f"{BASE}/api/render/{job['job_id']}/{endpoint}", headers=headers)
+      open(filename, "wb").write(resp.content)
+      print(f"Saved {filename}")
+  ```
+</Accordion>
 
 ## Tips
 
-<AccordionGroup>
-  <Accordion title="Green screen alternative">
-    If your editor supports chroma keying, you can use `background_mode=solid` with `bg_color=0,255,0` instead. This gives you a traditional green screen without needing a separate mask file.
-  </Accordion>
-</AccordionGroup>
+<Accordion title="Green screen alternative">
+  If your editor supports chroma keying, use `background_mode=solid` with `bg_color=0,255,0` instead. Traditional green screen without a separate mask file.
+</Accordion>

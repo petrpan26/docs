@@ -1,15 +1,20 @@
 ---
 title: "Pricing"
 description: "Credits and billing"
-icon: "credit-card"
 ---
 
-**1 credit per second** of rendered video. 1 credit = $0.01 (100 credits per dollar).
+<Columns cols={3}>
+  <Card title="Cost" icon="coins">
+    **1 credit/sec** of rendered video. 1 credit = $0.01 (100 credits per dollar).
+  </Card>
+  <Card title="Free" icon="gift">
+    Character and scene creation are free. Failed renders are refunded.
+  </Card>
+  <Card title="Limits" icon="gauge">
+    5 concurrent render jobs per org. Stored assets never expire.
+  </Card>
+</Columns>
 
-Character and scene creation are free. A small credit hold is placed when you create characters to prevent abuse, but it's automatically refunded when your first render starts. Failed renders are also refunded.
-
-**Concurrency** — Each organization can run up to 5 concurrent render jobs by default. Contact us if you need higher limits.
-
-**Asset storage** — Stored characters and scenes never expire. Once created, they're available for reuse indefinitely.
-
-To check your balance, use [Get Credit Balance](/api-reference/credits/balance).
+<Card title="Check your balance" icon="wallet" href="/api-reference/credits/balance">
+  `GET /api/credits/balance` -- see your current credit balance
+</Card>
