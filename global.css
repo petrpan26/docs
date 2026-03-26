@@ -1,0 +1,300 @@
+/* ---- Theme-aware custom properties ---- */
+:root {
+  --sidebar-heading-color: rgba(0, 0, 0, 0.62);
+  --sidebar-border-subtle: rgba(0, 0, 0, 0.1);
+}
+
+.dark,
+[data-theme="dark"] {
+  --sidebar-heading-color: rgba(255, 255, 255, 0.45);
+  --sidebar-border-subtle: rgba(255, 255, 255, 0.08);
+}
+
+/*
+ * border-radius: !important required here — the universal selector has zero
+ * specificity so it cannot beat Tailwind's .rounded-2xl / .rounded-xl etc.
+ */
+*,
+*::before,
+*::after {
+  border-radius: 2px !important;
+}
+
+#content-area svg,
+#content-area [style*="mask-image"] {
+  border-radius: 0 !important;
+}
+
+/* ---- Content area: prevent squeeze at mid-widths ---- */
+#content-area {
+  min-width: 0;
+}
+
+#content-container {
+  min-width: 0;
+}
+
+/* Sidebar: tighter vertical rhythm */
+#sidebar-content li {
+  margin-bottom: 1px;
+}
+
+/*
+ * Sidebar icon hiding: !important required because Mintlify renders icons
+ * with inline flex styles that only !important can override.
+ */
+#sidebar-content [class*="sidebar-group-icon"],
+#sidebar-content .sidebar-group-icon,
+#navigation-items a > div[class*="shrink-0"],
+#navigation-items a > div:first-child:not([class*="flex-1"]),
+#navigation-items a svg,
+#navigation-items a img {
+  display: none !important;
+}
+
+/* Community link: Discord button */
+#navigation-items a[href*="discord"] {
+  width: fit-content;
+  padding: 6px 12px;
+  border: 1px solid var(--sidebar-border-subtle);
+  background: color-mix(in srgb, var(--primary) 4%, transparent);
+  transition:
+    background 0.15s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#navigation-items a[href*="discord"]:hover {
+  border-color: color-mix(in srgb, var(--primary) 30%, transparent);
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+#navigation-items a[href*="discord"]:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-color: color-mix(in srgb, var(--primary) 30%, transparent);
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+#navigation-items a[href*="discord"]:active {
+  background: color-mix(in srgb, var(--primary) 16%, transparent);
+}
+
+#navigation-items a[href*="discord"]::before {
+  content: "";
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  align-self: center;
+  margin-right: 6px;
+  background: url("https://cdn.viggle.ai/template/media/20260311/d1b18180-9b8f-44cc-b45d-80a5f1507146.png") center/contain no-repeat;
+  filter: brightness(0) invert(1);
+}
+
+:root:not(.dark) #navigation-items a[href*="discord"]::before,
+[data-theme="light"] #navigation-items a[href*="discord"]::before {
+  filter: brightness(0);
+}
+
+/* Differentiate section headings vs page links */
+#sidebar-content h5,
+#sidebar-content [class*="sidebar-group-header"] {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--sidebar-heading-color);
+  margin-top: 1.4rem;
+  margin-bottom: 0.4rem;
+  padding-bottom: 0.25rem;
+}
+
+#sidebar-content [class*="sidebar-group-header"] {
+  border-bottom: 1px solid var(--sidebar-border-subtle);
+}
+
+#sidebar-content h5 {
+  border-bottom: none;
+}
+
+#sidebar-content a {
+  font-size: 0.8rem;
+  line-height: 1.3;
+  font-weight: 400;
+  border-left: 2px solid transparent;
+  padding-top: 0.3rem;
+  padding-bottom: 0.3rem;
+  padding-left: 0.45rem;
+  max-width: 100%;
+  transition:
+    background-color 0.15s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.15s cubic-bezier(0.16, 1, 0.3, 1),
+    color 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Collapse extra spacing on nav group wrappers — let headings control rhythm */
+#navigation-items > div {
+  margin-top: 0;
+  margin-bottom: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* Nav links: block-level flex, left-aligned regardless of parent text-align */
+#navigation-items,
+#navigation-items * {
+  text-align: left;
+}
+
+#navigation-items a {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding-left: 0.45rem !important;
+  gap: 0.35rem;
+  white-space: normal;
+  overflow: visible;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+#navigation-items a > span,
+#navigation-items a > div {
+  min-width: 0;
+  flex: 1 1 auto;
+  white-space: normal;
+  overflow: visible;
+}
+
+/* Hover */
+#sidebar-content a:hover {
+  background-color: color-mix(in srgb, var(--primary) 12%, transparent);
+  border-left-color: var(--primary);
+}
+
+/* Active (press) */
+#sidebar-content a:active {
+  background-color: color-mix(in srgb, var(--primary) 20%, transparent);
+}
+
+/* Keyboard focus — matches hover for parity */
+#sidebar-content a:focus-visible {
+  background-color: color-mix(in srgb, var(--primary) 12%, transparent);
+  border-left-color: var(--primary);
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+
+/* Current page */
+#sidebar-content li[data-active] > a,
+#sidebar-content li[data-active] a[aria-current="page"] {
+  background-color: color-mix(in srgb, var(--primary) 18%, transparent);
+  border-left-color: var(--primary);
+  font-weight: 600;
+}
+
+/* MDX Tabs active state */
+#content-area [role="tab"][data-state="active"],
+#content-area [role="tab"][aria-selected="true"] {
+  color: var(--primary);
+}
+
+#content-area [role="tab"][data-state="active"] {
+  box-shadow: inset 0 -2px 0 0 var(--primary);
+}
+
+#content-area [role="tab"]:focus-visible {
+  outline-color: var(--primary);
+}
+
+#content-area [role="tab"]:active {
+  opacity: 0.8;
+}
+
+/*
+ * Callouts: ID-prefixed selector (1,1,0) beats any number of Tailwind
+ * utility classes, so no !important needed.
+ */
+#content-area .callout {
+  background: transparent;
+  border: none;
+  padding-left: 0;
+  padding-right: 0;
+  font-size: 10pt;
+}
+
+/* Content area: remove top margin — ID+class (1,1,0) beats utilities */
+#content.mdx-content {
+  margin-top: 0;
+}
+
+/*
+ * CTA button: !important required because Mintlify may set link color via
+ * inline styles or framework-level !important rules.
+ */
+li#topbar-cta-button a,
+li#topbar-cta-button a * {
+  color: #000 !important;
+}
+
+/*
+ * Table of contents: ID selector (1,0,0+) outranks all Tailwind class
+ * selectors, so no !important needed.
+ */
+#table-of-contents {
+  font-size: 0.72rem;
+  line-height: 1.3;
+}
+
+#table-of-contents * {
+  font-size: inherit;
+  line-height: inherit;
+}
+
+#table-of-contents a {
+  padding-top: 0.1rem;
+  padding-bottom: 0.1rem;
+  margin-bottom: 0;
+}
+
+#table-of-contents > * + * {
+  margin-top: 0.25rem;
+}
+
+/* ToC layout: stack button above nav vertically */
+#table-of-contents-layout {
+  flex-direction: column;
+  gap: 16px;
+}
+
+/*
+ * "Copy page for agent" button — CSS fallback; JS applies inline styles that
+ * override these for theme-aware colors. The :focus-visible and :active
+ * pseudo-classes below still apply since JS doesn't handle them.
+ */
+#copy-for-llm-btn:focus-visible,
+#copy-for-llm-btn-mobile:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+#copy-for-llm-btn:active,
+#copy-for-llm-btn-mobile:active {
+  transform: scale(0.97);
+}
+
+/* Mobile wrapper: right-aligned at top of content; JS toggles display based on ToC visibility */
+.copy-for-llm-btn-mobile-wrapper {
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+/* ---- Reduced motion ---- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

@@ -1,143 +1,110 @@
 ---
 title: 'On-Demand Rendering'
-description: 'Render a video in one API call — no preprocessing required'
+description: 'Render a video in one API call -- no preprocessing required'
 ---
 
-Send a character image and driving video directly in the render request. No preprocessing, no stored assets — just one API call to start rendering.
+Send a character image and driving video directly. No preprocessing, no stored assets -- one API call to start rendering.
 
 ## Prerequisites
 
 - A Viggle API key ([get one here](https://portal.viggle.ai/api-keys))
-- A reference image (PNG or JPG) of the character you want to animate
-- A driving video (MP4) containing the motion you want to transfer
+- A reference image (PNG or JPG)
+- A driving video (MP4)
 
-## Step 1: Render
+## Workflow
 
-Upload `ref_image` and `driving_video` directly to start a render job. **Costs 1 credit/second of output video only** — no separate character charge.
+<Steps>
+  <Step title="Render" icon="upload">
+    Upload `ref_image` and `driving_video` to start a job. **1 credit/sec** of output.
 
-<CodeGroup>
+    <CodeGroup>
 
-```python Python
-import requests
+    ```python Python
+    import requests
+    API_KEY, BASE = "YOUR_API_KEY", "https://apis.viggle.ai"
+    headers = {"Authorization": f"Bearer {API_KEY}"}
 
-API_KEY = "YOUR_API_KEY"
-BASE = "https://apis.viggle.ai"
-headers = {"Authorization": f"Bearer {API_KEY}"}
-
-job = requests.post(
-    f"{BASE}/api/render",
-    headers=headers,
-    files={
+    job = requests.post(f"{BASE}/api/render", headers=headers, files={
         "ref_image": open("character.png", "rb"),
         "driving_video": open("dance.mp4", "rb"),
+    }).json()
+    print(f"Job ID: {job['job_id']}")
+    ```
+
+    ```javascript JavaScript
+    const API_KEY = "YOUR_API_KEY", BASE = "https://apis.viggle.ai";
+    const headers = { Authorization: `Bearer ${API_KEY}` };
+    const form = new FormData();
+    form.append("ref_image", imageFile);
+    form.append("driving_video", videoFile);
+    const job = await fetch(`${BASE}/api/render`, {
+      method: "POST", headers, body: form
+    }).then(r => r.json());
+    ```
+
+    ```bash cURL
+    curl -X POST "https://apis.viggle.ai/api/render" \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -F "ref_image=@character.png" -F "driving_video=@dance.mp4"
+    ```
+
+    </CodeGroup>
+  </Step>
+
+  <Step title="Poll for completion" icon="clock">
+    No auth required for the status endpoint.
+
+    <CodeGroup>
+
+    ```python Python
+    import time
+    while True:
+        status = requests.get(f"{BASE}/api/render/{job['job_id']}").json()
+        if status["status"] == "complete": break
+        elif status["status"] == "failed": raise Exception(status.get("error"))
+        time.sleep(5)
+    ```
+
+    ```javascript JavaScript
+    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+    while (true) {
+      const s = await fetch(`${BASE}/api/render/${job.job_id}`).then(r => r.json());
+      if (s.status === "complete") break;
+      if (s.status === "failed") throw new Error(s.error);
+      await sleep(5000);
     }
-).json()
+    ```
 
-print(f"Job ID: {job['job_id']}")
-```
+    </CodeGroup>
+  </Step>
 
-```javascript JavaScript
-const API_KEY = "YOUR_API_KEY";
-const BASE = "https://apis.viggle.ai";
-const headers = { "Authorization": `Bearer ${API_KEY}` };
+  <Step title="Download" icon="download">
+    Auth required for download.
 
-const form = new FormData();
-form.append("ref_image", imageFile);
-form.append("driving_video", videoFile);
+    <CodeGroup>
 
-const job = await fetch(`${BASE}/api/render`, {
-  method: "POST", headers, body: form
-}).then(r => r.json());
+    ```python Python
+    video = requests.get(f"{BASE}/api/render/{job['job_id']}/download", headers=headers)
+    open("output.mp4", "wb").write(video.content)
+    ```
 
-console.log(`Job ID: ${job.job_id}`);
-```
+    ```javascript JavaScript
+    const video = await fetch(`${BASE}/api/render/${job.job_id}/download`, { headers });
+    require("fs").writeFileSync("output.mp4", Buffer.from(await video.arrayBuffer()));
+    ```
 
-```bash cURL
-curl -X POST "https://apis.viggle.ai/api/render" \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -F "ref_image=@character.png" \
-  -F "driving_video=@dance.mp4"
-```
+    ```bash cURL
+    curl -L "https://apis.viggle.ai/api/render/JOB_ID/download" \
+      -H "Authorization: Bearer YOUR_API_KEY" -o output.mp4
+    ```
 
-</CodeGroup>
+    </CodeGroup>
+  </Step>
+</Steps>
 
-## Step 2: Poll for Completion
+## Render options
 
-Check status until the job is complete. No authentication required for the status endpoint.
-
-<CodeGroup>
-
-```python Python
-import time
-
-while True:
-    status = requests.get(f"{BASE}/api/render/{job['job_id']}").json()
-    progress = status.get("progress", {})
-    print(f"Status: {status['status']} ({progress.get('completed_chunks', 0)}/{progress.get('total_chunks', 0)})")
-
-    if status["status"] == "complete":
-        break
-    elif status["status"] == "failed":
-        raise Exception(status.get("error"))
-
-    time.sleep(5)
-```
-
-```javascript JavaScript
-const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-
-while (true) {
-  const status = await fetch(`${BASE}/api/render/${job.job_id}`).then(r => r.json());
-  const { completed_chunks = 0, total_chunks = 0 } = status.progress ?? {};
-  console.log(`Status: ${status.status} (${completed_chunks}/${total_chunks})`);
-
-  if (status.status === "complete") break;
-  if (status.status === "failed") throw new Error(status.error);
-
-  await sleep(5000);
-}
-```
-
-</CodeGroup>
-
-## Step 3: Download
-
-Download the completed video (authentication required).
-
-<CodeGroup>
-
-```python Python
-video = requests.get(
-    f"{BASE}/api/render/{job['job_id']}/download",
-    headers=headers
-)
-with open("output.mp4", "wb") as f:
-    f.write(video.content)
-print("Saved to output.mp4")
-```
-
-```javascript JavaScript
-const video = await fetch(
-  `${BASE}/api/render/${job.job_id}/download`,
-  { headers }
-).then(r => r.arrayBuffer());
-
-const fs = require('fs');
-fs.writeFileSync("output.mp4", Buffer.from(video));
-console.log("Saved to output.mp4");
-```
-
-```bash cURL
-curl -L "https://apis.viggle.ai/api/render/JOB_ID/download" \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -o output.mp4
-```
-
-</CodeGroup>
-
-## Render Options
-
-Pass additional form fields alongside `ref_image` and `driving_video` to customize output:
+Pass additional fields alongside `ref_image` and `driving_video`:
 
 ```python
 job = requests.post(f"{BASE}/api/render", headers=headers, files={
@@ -156,24 +123,24 @@ See [Render Options](/render-options) for all available parameters.
 
 | | On-Demand | Preprocessing |
 |--|-----------|---------------|
-| **Setup** | None — send files directly | Create character + scene first |
-| **Speed** | Includes preprocessing time | ~3x faster (skips preprocessing) |
-| **Reuse** | No stored assets | Reuse characters and scenes across renders |
-| **Best for** | One-off renders, prototyping | Production workflows, repeated renders |
+| **Setup** | None -- send files directly | Create character + scene first |
+| **Speed** | Includes preprocessing time | ~3x faster |
+| **Reuse** | No stored assets | Reuse across renders |
+| **Best for** | One-off renders, prototyping | Production, repeated renders |
 
-## What's Next?
+## What's next?
 
 <CardGroup cols={2}>
   <Card title="Preprocessing Guide" icon="rocket" href="/guides/quickstart">
-    Pre-create characters and scenes for 3x faster renders
+    Pre-create assets for 3x faster renders
   </Card>
   <Card title="Import Templates" icon="download" href="/guides/import-templates">
     Use pre-made templates from viggle.ai
   </Card>
-  <Card title="Live Rendering" icon="bolt" href="/guides/live-render">
+  <Card title="Live Rendering" icon="radio" href="/guides/live-render">
     Stream video chunks in real-time
   </Card>
-  <Card title="Render Options" icon="sliders" href="/render-options">
+  <Card title="Render Options" icon="gauge" href="/render-options">
     Background mode, fast mode, and more
   </Card>
 </CardGroup>

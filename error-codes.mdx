@@ -1,0 +1,80 @@
+---
+title: 'Errors'
+description: 'API error codes and handling'
+---
+
+All errors return JSON with a `detail` field:
+
+```json
+{
+  "detail": "Human-readable error message"
+}
+```
+
+## HTTP status codes
+
+| Status | Name | Common Causes | Solution |
+|--------|------|---------------|----------|
+| 400 | Bad Request | Missing required fields, invalid parameter types, malformed JSON | Check your request against the API docs |
+| 401 | Unauthorized | Missing `Authorization` header, invalid or expired API key, incorrect format | Include `Authorization: Bearer YOUR_API_KEY` in headers |
+| 402 | Payment Required | Account out of credits, operation requires more than available | Add credits in the [dashboard](https://portal.viggle.ai/dashboard) |
+| 404 | Not Found | Invalid or deleted resource ID, resource belongs to a different account | Verify the ID exists in your account |
+| 422 | Unprocessable | Character/scene not `ready` yet, asset still processing or failed | Poll status until `ready` before creating render jobs |
+| 429 | Rate Limited | Exceeding org concurrency limit (default: 5 concurrent render jobs) | Wait for jobs to finish, or use exponential backoff |
+| 503 | Unavailable | Requesting `fast: true` when capacity is unavailable, high system load | Retry with `fast: false` or wait and retry later |
+
+## Error handling
+
+<AccordionGroup>
+  <Accordion title="Implement retry logic">
+    For transient errors (429, 503), use exponential backoff:
+
+    ```python
+    import time, requests
+
+    def api_request_with_retry(url, max_retries=3):
+        for attempt in range(max_retries):
+            response = requests.get(url, headers=headers)
+            if response.status_code == 429:
+                time.sleep(2 ** attempt)
+                continue
+            return response
+        raise Exception("Max retries exceeded")
+    ```
+  </Accordion>
+  <Accordion title="Handle processing failures">
+    Always check for failed status when polling:
+
+    ```python
+    while True:
+        status = get_status(resource_id)
+        if status["status"] == "ready": break
+        elif status["status"] == "failed":
+            print(f"Error: {status['error']}")
+            break
+        time.sleep(5)
+    ```
+  </Accordion>
+  <Accordion title="Validate before rendering">
+    Check that assets are ready before creating render jobs:
+
+    ```python
+    character = get_character(character_id)
+    scene = get_scene(scene_id)
+    if character["status"] != "ready": raise Exception("Character not ready")
+    if scene["status"] != "ready": raise Exception("Scene not ready")
+    create_render_job(character_id, scene_id)
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Common scenarios
+
+| Scenario | Error | Solution |
+|----------|-------|----------|
+| API key not included | 401 | Add `Authorization: Bearer KEY` header |
+| Rendering with pending character | 422 | Wait for character status `ready` |
+| Out of credits | 402 | Purchase more credits |
+| Fast mode unavailable | 503 | Set `fast: false` or retry later |
+| Invalid character ID | 404 | Verify ID exists in your account |
+| Rate limited | 429 | Wait or retry with backoff |
