@@ -25,9 +25,24 @@
   border-radius: 0 !important;
 }
 
+/* Code blocks: sharp corners */
+#content-area .code-group,
+#content-area .code-group *,
+#content-area [data-component-part="code-block-root"] {
+  border-radius: 2px !important;
+}
+
+/* API playground: strip outer wrapper, keep inner content */
+#content-area .border-standard[class*="rounded-2xl"] {
+  border: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+}
+
 /* ---- Content area: prevent squeeze at mid-widths ---- */
 #content-area {
   min-width: 0;
+  position: relative;
 }
 
 #content-container {
@@ -50,6 +65,150 @@
 #navigation-items a svg,
 #navigation-items a img {
   display: none !important;
+}
+
+/* ---- API method badges ---- */
+
+/* Shared base for all endpoint badges */
+#sidebar-content a[href*="api-reference/"]::after,
+#mobile-nav a[href*="api-reference/"]::after {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 1px 5px;
+  margin-left: auto;
+  flex-shrink: 0;
+  line-height: 1.4;
+}
+
+/* POST — blue */
+#sidebar-content a[href*="characters/create"]::after,
+#sidebar-content a[href*="scenes/create"]::after,
+#sidebar-content a[href*="scenes/import"]::after,
+#sidebar-content a[href*="render/create"]::after,
+#sidebar-content a[href*="render/multi-character"]::after,
+#mobile-nav a[href*="characters/create"]::after,
+#mobile-nav a[href*="scenes/create"]::after,
+#mobile-nav a[href*="scenes/import"]::after,
+#mobile-nav a[href*="render/create"]::after,
+#mobile-nav a[href*="render/multi-character"]::after {
+  content: "POST";
+  background: rgba(96, 165, 250, 0.15);
+  color: rgb(96, 165, 250);
+}
+
+.dark #sidebar-content a[href*="characters/create"]::after,
+.dark #sidebar-content a[href*="scenes/create"]::after,
+.dark #sidebar-content a[href*="scenes/import"]::after,
+.dark #sidebar-content a[href*="render/create"]::after,
+.dark #sidebar-content a[href*="render/multi-character"]::after,
+.dark #mobile-nav a[href*="characters/create"]::after,
+.dark #mobile-nav a[href*="scenes/create"]::after,
+.dark #mobile-nav a[href*="scenes/import"]::after,
+.dark #mobile-nav a[href*="render/create"]::after,
+.dark #mobile-nav a[href*="render/multi-character"]::after {
+  background: rgba(96, 165, 250, 0.2);
+  color: rgb(147, 197, 253);
+}
+
+/* GET — green */
+#sidebar-content a[href*="characters/list"]::after,
+#sidebar-content a[href*="characters/get"]::after,
+#sidebar-content a[href*="scenes/list"]::after,
+#sidebar-content a[href*="scenes/get"]::after,
+#sidebar-content a[href*="render/poll"]::after,
+#sidebar-content a[href*="render/status"]::after,
+#sidebar-content a[href*="render/download"]::after,
+#sidebar-content a[href*="credits/balance"]::after,
+#mobile-nav a[href*="characters/list"]::after,
+#mobile-nav a[href*="characters/get"]::after,
+#mobile-nav a[href*="scenes/list"]::after,
+#mobile-nav a[href*="scenes/get"]::after,
+#mobile-nav a[href*="render/poll"]::after,
+#mobile-nav a[href*="render/status"]::after,
+#mobile-nav a[href*="render/download"]::after,
+#mobile-nav a[href*="credits/balance"]::after {
+  content: "GET";
+  background: rgba(74, 222, 128, 0.15);
+  color: rgb(21, 128, 61);
+}
+
+.dark #sidebar-content a[href*="characters/list"]::after,
+.dark #sidebar-content a[href*="characters/get"]::after,
+.dark #sidebar-content a[href*="scenes/list"]::after,
+.dark #sidebar-content a[href*="scenes/get"]::after,
+.dark #sidebar-content a[href*="render/poll"]::after,
+.dark #sidebar-content a[href*="render/status"]::after,
+.dark #sidebar-content a[href*="render/download"]::after,
+.dark #sidebar-content a[href*="credits/balance"]::after,
+.dark #mobile-nav a[href*="characters/list"]::after,
+.dark #mobile-nav a[href*="characters/get"]::after,
+.dark #mobile-nav a[href*="scenes/list"]::after,
+.dark #mobile-nav a[href*="scenes/get"]::after,
+.dark #mobile-nav a[href*="render/poll"]::after,
+.dark #mobile-nav a[href*="render/status"]::after,
+.dark #mobile-nav a[href*="render/download"]::after,
+.dark #mobile-nav a[href*="credits/balance"]::after {
+  background: rgba(74, 222, 128, 0.2);
+  color: rgb(74, 222, 128);
+}
+
+/* DELETE — red */
+#sidebar-content a[href*="characters/delete"]::after,
+#sidebar-content a[href*="scenes/delete"]::after,
+#mobile-nav a[href*="characters/delete"]::after,
+#mobile-nav a[href*="scenes/delete"]::after {
+  content: "DEL";
+  background: rgba(248, 113, 113, 0.15);
+  color: rgb(185, 28, 28);
+}
+
+.dark #sidebar-content a[href*="characters/delete"]::after,
+.dark #sidebar-content a[href*="scenes/delete"]::after,
+.dark #mobile-nav a[href*="characters/delete"]::after,
+.dark #mobile-nav a[href*="scenes/delete"]::after {
+  background: rgba(248, 113, 113, 0.2);
+  color: rgb(248, 113, 113);
+}
+
+/* Try It button — ghost outline matching method color */
+#content-area .tryit-button {
+  background: transparent !important;
+}
+
+#content-area .tryit-button [data-component-part="icon-svg"],
+#content-area .tryit-button svg[style*="mask-image"] {
+  background-color: currentColor !important;
+}
+
+#content-area :has(.method-pill[class*="text-blue"]) > .tryit-button {
+  color: rgb(29, 78, 216) !important;
+  border: 1px solid rgb(29, 78, 216) !important;
+}
+
+.dark #content-area :has(.method-pill[class*="text-blue"]) > .tryit-button {
+  color: rgb(96, 165, 250) !important;
+  border: 1px solid rgb(96, 165, 250) !important;
+}
+
+#content-area :has(.method-pill[class*="text-green"]) > .tryit-button {
+  color: rgb(21, 128, 61) !important;
+  border: 1px solid rgb(21, 128, 61) !important;
+}
+
+.dark #content-area :has(.method-pill[class*="text-green"]) > .tryit-button {
+  color: rgb(74, 222, 128) !important;
+  border: 1px solid rgb(74, 222, 128) !important;
+}
+
+#content-area :has(.method-pill[class*="text-red"]) > .tryit-button {
+  color: rgb(185, 28, 28) !important;
+  border: 1px solid rgb(185, 28, 28) !important;
+}
+
+.dark #content-area :has(.method-pill[class*="text-red"]) > .tryit-button {
+  color: rgb(248, 113, 113) !important;
+  border: 1px solid rgb(248, 113, 113) !important;
 }
 
 /* Community link: Discord button */
@@ -104,16 +263,22 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--sidebar-heading-color);
-  margin-top: 1.4rem;
-  margin-bottom: 0.4rem;
+  margin-top: 1rem;
+  margin-bottom: 0.3rem;
   padding-bottom: 0.25rem;
 }
 
 #sidebar-content [class*="sidebar-group-header"] {
+  padding-left: calc(0.45rem + 2px) !important;
   border-bottom: 1px solid var(--sidebar-border-subtle);
 }
 
+#navigation-items > div:first-child > [class*="sidebar-group-header"] {
+  margin-top: 0 !important;
+}
+
 #sidebar-content h5 {
+  padding-left: 0 !important;
   border-bottom: none;
 }
 
@@ -132,12 +297,35 @@
     color 0.15s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* Align sidebar nav start with content area start */
+#sidebar-content > div.relative {
+  padding-top: 0 !important;
+}
+
 /* Collapse extra spacing on nav group wrappers — let headings control rhythm */
 #navigation-items > div {
-  margin-top: 0;
-  margin-bottom: 0;
-  padding-top: 0;
-  padding-bottom: 0;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* Make navigation a flex column so we can reorder the anchors list to the bottom */
+#navigation-items {
+  display: flex;
+  flex-direction: column;
+}
+
+#navigation-items > ul.list-none {
+  order: 99;
+  margin-top: auto;
+  padding-top: 1rem;
+  padding-left: calc(0.45rem + 2px) !important;
+  margin-left: 0;
+}
+
+#navigation-items > ul.list-none a {
+  margin-left: 0 !important;
 }
 
 /* Nav links: block-level flex, left-aligned regardless of parent text-align */
@@ -228,6 +416,25 @@
   margin-top: 0;
 }
 
+/* Align page header with first sidebar heading (desktop only) */
+@media (min-width: 1024px) {
+  #content-area > header#header {
+    padding-top: 1.375rem;
+  }
+}
+
+/* Hide heading anchor links and add breathing room above section headings */
+#content-area h2 > div > a[aria-label="Navigate to header"],
+#content-area h3 > div > a[aria-label="Navigate to header"],
+#content-area h4 > div > a[aria-label="Navigate to header"] {
+  display: none !important;
+}
+
+#content-area h2,
+#content-area h3 {
+  margin-top: 2.5rem;
+}
+
 /*
  * CTA button: !important required because Mintlify may set link color via
  * inline styles or framework-level !important rules.
@@ -261,32 +468,173 @@ li#topbar-cta-button a * {
   margin-top: 0.25rem;
 }
 
-/* ToC layout: stack button above nav vertically */
-#table-of-contents-layout {
-  flex-direction: column;
-  gap: 16px;
+/*
+ * "Copy page for agent" button — single instance, top-right of content area.
+ * JS applies inline styles for theme-aware colors; pseudo-classes below still
+ * apply since JS doesn't handle them.
+ */
+.copy-for-llm-btn-wrapper {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 10;
 }
 
-/*
- * "Copy page for agent" button — CSS fallback; JS applies inline styles that
- * override these for theme-aware colors. The :focus-visible and :active
- * pseudo-classes below still apply since JS doesn't handle them.
- */
-#copy-for-llm-btn:focus-visible,
-#copy-for-llm-btn-mobile:focus-visible {
+#copy-for-llm-btn:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
 
-#copy-for-llm-btn:active,
-#copy-for-llm-btn-mobile:active {
+#copy-for-llm-btn:active {
   transform: scale(0.97);
 }
 
-/* Mobile wrapper: right-aligned at top of content; JS toggles display based on ToC visibility */
-.copy-for-llm-btn-mobile-wrapper {
-  justify-content: flex-end;
-  margin-bottom: 8px;
+/* ---- Mobile nav: mirror desktop sidebar treatment ---- */
+#mobile-nav li {
+  margin-bottom: 1px;
+}
+
+#mobile-nav h5,
+#mobile-nav [class*="sidebar-group-header"] {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--sidebar-heading-color);
+  margin-top: 1rem;
+  margin-bottom: 0.3rem;
+  padding-bottom: 0.25rem;
+}
+
+#mobile-nav [class*="sidebar-group-header"] {
+  padding-left: calc(0.45rem + 2px) !important;
+  border-bottom: 1px solid var(--sidebar-border-subtle);
+}
+
+#mobile-nav h5 {
+  padding-left: 0 !important;
+  border-bottom: none;
+}
+
+#mobile-nav > div > div:first-child [class*="sidebar-group-header"],
+#mobile-nav [class*="sidebar-group-header"]:first-of-type {
+  margin-top: 0;
+}
+
+#mobile-nav [class*="sidebar-group-icon"],
+#mobile-nav .sidebar-group-icon,
+#mobile-nav a > div[class*="shrink-0"],
+#mobile-nav a > div:first-child:not([class*="flex-1"]),
+#mobile-nav a svg,
+#mobile-nav a img {
+  display: none !important;
+}
+
+#mobile-nav a {
+  font-size: 0.8rem;
+  line-height: 1.3;
+  font-weight: 400;
+  border-left: 2px solid transparent;
+  padding-top: 0.3rem;
+  padding-bottom: 0.3rem;
+  padding-left: 0.45rem !important;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  text-align: left;
+  gap: 0.35rem;
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  transition:
+    background-color 0.15s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.15s cubic-bezier(0.16, 1, 0.3, 1),
+    color 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#mobile-nav a > span,
+#mobile-nav a > div {
+  min-width: 0;
+  flex: 1 1 auto;
+  white-space: normal;
+  overflow: visible;
+}
+
+#mobile-nav a:hover {
+  background-color: color-mix(in srgb, var(--primary) 12%, transparent);
+  border-left-color: var(--primary);
+}
+
+#mobile-nav a:active {
+  background-color: color-mix(in srgb, var(--primary) 20%, transparent);
+}
+
+#mobile-nav a:focus-visible {
+  background-color: color-mix(in srgb, var(--primary) 12%, transparent);
+  border-left-color: var(--primary);
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+
+#mobile-nav li[data-active] > a,
+#mobile-nav li[data-active] a[aria-current="page"],
+#mobile-nav a.bg-primary\/10,
+#mobile-nav a[class*="bg-primary"] {
+  background-color: color-mix(in srgb, var(--primary) 18%, transparent);
+  border-left-color: var(--primary);
+  font-weight: 600;
+}
+
+#mobile-nav > div {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+#mobile-nav a[href*="discord"] {
+  width: fit-content;
+  padding: 6px 12px;
+  border: 1px solid var(--sidebar-border-subtle);
+  background: color-mix(in srgb, var(--primary) 4%, transparent);
+  transition:
+    background 0.15s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#mobile-nav a[href*="discord"]:hover {
+  border-color: color-mix(in srgb, var(--primary) 30%, transparent);
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+#mobile-nav a[href*="discord"]::before {
+  content: "";
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  align-self: center;
+  margin-right: 6px;
+  background: url("https://cdn.viggle.ai/template/media/20260311/d1b18180-9b8f-44cc-b45d-80a5f1507146.png") center/contain no-repeat;
+  filter: brightness(0) invert(1);
+}
+
+:root:not(.dark) #mobile-nav a[href*="discord"]::before,
+[data-theme="light"] #mobile-nav a[href*="discord"]::before {
+  filter: brightness(0);
+}
+
+/* Push Community to the bottom of the mobile nav */
+#mobile-nav ul.list-none {
+  order: 99;
+  margin-top: auto;
+  padding-top: 1rem;
+  padding-left: calc(0.45rem + 2px) !important;
+  margin-left: 0;
+}
+
+#mobile-nav ul.list-none a {
+  margin-left: 0 !important;
 }
 
 /* ---- Reduced motion ---- */
