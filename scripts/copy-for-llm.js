@@ -2,7 +2,6 @@
   "use strict";
 
   var BUTTON_ID = "copy-for-llm-btn";
-  var MOBILE_BUTTON_ID = "copy-for-llm-btn-mobile";
   var debounceTimer = null;
 
   function extractPageText() {
@@ -35,7 +34,6 @@
       "footer",
       "[aria-hidden='true']",
       ".copy-for-llm-btn-wrapper",
-      ".copy-for-llm-btn-mobile-wrapper",
       "button",
       "svg",
       ".sr-only",
@@ -311,52 +309,16 @@
     return btn;
   }
 
-  function isTocVisible() {
-    var tocLayout = document.getElementById("table-of-contents-layout");
-    if (!tocLayout) return false;
-    var rect = tocLayout.getBoundingClientRect();
-    return rect.width > 0 && rect.height > 0;
-  }
-
-  function syncMobileVisibility() {
-    var mobileWrapper = document.querySelector(
-      ".copy-for-llm-btn-mobile-wrapper"
-    );
-    if (!mobileWrapper) return;
-    mobileWrapper.style.display = isTocVisible() ? "none" : "flex";
-  }
-
   function createButton() {
-    /* ---- Desktop: inside the ToC sidebar ---- */
-    if (!document.getElementById(BUTTON_ID)) {
-      var wrapper = document.createElement("div");
-      wrapper.className = "copy-for-llm-btn-wrapper";
-      wrapper.style.marginBottom = "12px";
-      wrapper.appendChild(makeBtnEl(BUTTON_ID));
+    if (document.getElementById(BUTTON_ID)) return;
 
-      var tocLayout = document.getElementById("table-of-contents-layout");
-      if (tocLayout) {
-        tocLayout.insertBefore(wrapper, tocLayout.firstChild);
-      } else {
-        var toc = document.getElementById("table-of-contents");
-        if (toc && toc.parentElement) {
-          toc.parentElement.insertBefore(wrapper, toc);
-        }
-      }
-    }
+    var contentArea = document.getElementById("content-area");
+    if (!contentArea) return;
 
-    /* ---- Mobile/Tablet: inside the content area ---- */
-    if (!document.getElementById(MOBILE_BUTTON_ID)) {
-      var contentArea = document.getElementById("content-area");
-      if (contentArea) {
-        var mobileWrapper = document.createElement("div");
-        mobileWrapper.className = "copy-for-llm-btn-mobile-wrapper";
-        mobileWrapper.appendChild(makeBtnEl(MOBILE_BUTTON_ID));
-        contentArea.insertBefore(mobileWrapper, contentArea.firstChild);
-      }
-    }
-
-    syncMobileVisibility();
+    var wrapper = document.createElement("div");
+    wrapper.className = "copy-for-llm-btn-wrapper";
+    wrapper.appendChild(makeBtnEl(BUTTON_ID));
+    contentArea.insertBefore(wrapper, contentArea.firstChild);
   }
 
   if (document.readyState === "loading") {
@@ -375,21 +337,35 @@
     subtree: true,
   });
 
-  var resizeTimer = null;
-  window.addEventListener("resize", function () {
-    clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(syncMobileVisibility, 100);
-  });
-
   function refreshBtnColors() {
-    [BUTTON_ID, MOBILE_BUTTON_ID].forEach(function (id) {
-      var btn = document.getElementById(id);
-      if (btn) applyBtnStyles(btn);
-    });
+    var btn = document.getElementById(BUTTON_ID);
+    if (btn) applyBtnStyles(btn);
   }
 
   new MutationObserver(refreshBtnColors).observe(document.documentElement, {
     attributes: true,
     attributeFilter: ["class", "data-theme"],
   });
+
+  function fixTryItIcons() {
+    document.querySelectorAll(".tryit-button").forEach(function (btn) {
+      var computed = getComputedStyle(btn);
+      var btnColor = computed.color;
+      btn.querySelectorAll('[data-component-part="icon-svg"], svg[style*="mask-image"]').forEach(function (icon) {
+        icon.style.setProperty("background-color", btnColor, "important");
+      });
+    });
+  }
+
+  new MutationObserver(function () {
+    setTimeout(fixTryItIcons, 100);
+  }).observe(document.body, { childList: true, subtree: true });
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function () {
+      setTimeout(fixTryItIcons, 500);
+    });
+  } else {
+    setTimeout(fixTryItIcons, 500);
+  }
 })();
