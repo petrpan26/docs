@@ -38,6 +38,145 @@ curl -X POST "https://apis.viggle.ai/api/render" \
   -d 'character_mapping={"person_a1b2c3d4":"char_alice","person_e5f6g7h8":"char_alice","person_i9j0k1l2":"char_bob"}'
 ```
 
+## Examples
+
+<CodeGroup>
+```python Python
+import requests
+import json
+import time
+
+BASE = "https://apis.viggle.ai"
+headers = {"Authorization": "Bearer YOUR_API_KEY"}
+
+# Map each person in the scene to a character
+character_mapping = {
+    "person_a1b2c3d4": "char_alice",
+    "person_e5f6g7h8": "char_bob",
+}
+
+# 1. Start multi-character render
+resp = requests.post(
+    f"{BASE}/api/render",
+    headers=headers,
+    data={
+        "scene_id": "scene_770e8400e29b41d4",
+        "character_mapping": json.dumps(character_mapping),
+        "background_mode": "original",
+    },
+).json()
+
+if "detail" in resp:
+    raise Exception(f"Error {resp['detail']['error_code']}: {resp['detail']['message']}")
+
+job_id = resp["job_id"]
+print(f"Job created: {job_id}")
+
+# 2. Poll until complete (no auth required)
+while True:
+    status = requests.get(f"{BASE}/api/render/{job_id}").json()
+    if status["status"] == "complete":
+        break
+    elif status["status"] == "failed":
+        raise Exception(f"Error {status.get('error_code')}: {status.get('error')}")
+    time.sleep(5)
+
+# 3. Download (auth required)
+video = requests.get(
+    f"{BASE}/api/render/{job_id}/download",
+    headers=headers,
+    allow_redirects=True,
+    stream=True,
+)
+with open("output.mp4", "wb") as f:
+    for chunk in video.iter_content(chunk_size=8192):
+        f.write(chunk)
+
+print("Saved output.mp4")
+```
+
+```javascript JavaScript
+const BASE = "https://apis.viggle.ai";
+const headers = { "Authorization": "Bearer YOUR_API_KEY" };
+
+// Map each person in the scene to a character
+const characterMapping = {
+  person_a1b2c3d4: "char_alice",
+  person_e5f6g7h8: "char_bob",
+};
+
+// 1. Start multi-character render
+const form = new FormData();
+form.append("scene_id", "scene_770e8400e29b41d4");
+form.append("character_mapping", JSON.stringify(characterMapping));
+form.append("background_mode", "original");
+
+let resp = await fetch(`${BASE}/api/render`, {
+  method: "POST",
+  headers,
+  body: form,
+});
+let data = await resp.json();
+
+if (data.detail) {
+  throw new Error(`Error ${data.detail.error_code}: ${data.detail.message}`);
+}
+
+const jobId = data.job_id;
+console.log(`Job created: ${jobId}`);
+
+// 2. Poll until complete (no auth required)
+while (true) {
+  const status = await fetch(`${BASE}/api/render/${jobId}`).then(r => r.json());
+  if (status.status === "complete") break;
+  if (status.status === "failed") {
+    throw new Error(`Error ${status.error_code}: ${status.error}`);
+  }
+  await new Promise(r => setTimeout(r, 5000));
+}
+
+// 3. Download (auth required)
+const video = await fetch(`${BASE}/api/render/${jobId}/download`, { headers });
+const blob = await video.blob();
+const fs = await import("fs");
+fs.writeFileSync("output.mp4", Buffer.from(await blob.arrayBuffer()));
+console.log("Saved output.mp4");
+```
+
+```bash cURL
+# 1. Start multi-character render
+JOB=$(curl -s -X POST "https://apis.viggle.ai/api/render" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -F "scene_id=scene_770e8400e29b41d4" \
+  -F 'character_mapping={"person_a1b2c3d4":"char_alice","person_e5f6g7h8":"char_bob"}' \
+  -F "background_mode=original")
+
+JOB_ID=$(echo "$JOB" | jq -r '.job_id')
+echo "Job created: $JOB_ID"
+
+# 2. Poll until complete (no auth required)
+while true; do
+  STATUS=$(curl -s "https://apis.viggle.ai/api/render/$JOB_ID")
+  STATE=$(echo "$STATUS" | jq -r '.status')
+  echo "Status: $STATE"
+
+  if [ "$STATE" = "complete" ]; then break; fi
+  if [ "$STATE" = "failed" ]; then
+    echo "Error: $(echo "$STATUS" | jq -r '.error_code'): $(echo "$STATUS" | jq -r '.error')"
+    exit 1
+  fi
+  sleep 5
+done
+
+# 3. Download (auth required)
+curl -L -o output.mp4 \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  "https://apis.viggle.ai/api/render/$JOB_ID/download"
+
+echo "Saved output.mp4"
+```
+</CodeGroup>
+
 ## Complete Workflow
 
 <Steps>

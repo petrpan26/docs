@@ -115,6 +115,27 @@ while (true) {
 }
 ```
 
+```bash cURL
+# 1. Create render job
+curl -X POST "https://apis.viggle.ai/api/render" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -d "character_id=char_xxx" -d "scene_id=scene_xxx"
+# Returns: { "job_id": "JOB_ID", ... }
+
+# 2. Long-poll for chunks (blocks until new chunks are ready)
+curl "https://apis.viggle.ai/api/render/JOB_ID/poll?last_chunk=-1&timeout=30" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+# Returns: { "new_chunks": [{"chunk_id": 0, "cdn_url": "..."}], "status": "rendering" }
+
+# 3. Continue polling with last received chunk_id
+curl "https://apis.viggle.ai/api/render/JOB_ID/poll?last_chunk=0&timeout=30" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+# Repeat until: "status": "complete"
+
+# 4. Download individual chunks
+curl -o chunk_0.mp4 "CHUNK_CDN_URL"
+```
+
 </CodeGroup>
 
 ## Progressive Playback with fMP4 + MSE
@@ -191,11 +212,13 @@ async function streamWithMSE(jobId) {
 }
 ```
 
-### Server-Side: Stream to File (Python)
+### Server-Side: Stream to File
 
 Download fMP4 chunks as they arrive and concatenate into a single file:
 
-```python
+<CodeGroup>
+
+```python Python
 import requests
 
 API_KEY = "YOUR_API_KEY"
@@ -227,6 +250,75 @@ def stream_to_file(job_id, output_path="stream.mp4"):
             elif resp["status"] == "failed":
                 raise Exception(resp.get("error"))
 ```
+
+```javascript JavaScript
+const fs = require("fs");
+
+const API_KEY = "YOUR_API_KEY";
+const BASE = "https://apis.viggle.ai";
+const headers = { Authorization: `Bearer ${API_KEY}` };
+
+async function streamToFile(jobId, outputPath = "stream.mp4") {
+  const writeStream = fs.createWriteStream(outputPath);
+  let lastChunk = -1;
+
+  while (true) {
+    const resp = await fetch(
+      `${BASE}/api/render/${jobId}/poll?last_chunk=${lastChunk}&timeout=30`,
+      { headers, signal: AbortSignal.timeout(45000) }
+    ).then(r => r.json());
+
+    for (const chunk of resp.new_chunks) {
+      const data = await fetch(chunk.cdn_url).then(r => r.arrayBuffer());
+      writeStream.write(Buffer.from(data));
+      lastChunk = Math.max(lastChunk, chunk.chunk_id);
+      console.log(`  Wrote chunk ${chunk.chunk_id} (${data.byteLength} bytes)`);
+    }
+
+    if (resp.status === "complete") {
+      writeStream.end();
+      console.log(`Done! Saved to ${outputPath}`);
+      break;
+    }
+    if (resp.status === "failed") {
+      writeStream.end();
+      throw new Error(resp.error);
+    }
+  }
+}
+```
+
+```bash cURL
+#!/bin/bash
+# Stream fMP4 chunks to a single file as they arrive
+API_KEY="YOUR_API_KEY"
+BASE="https://apis.viggle.ai"
+JOB_ID="YOUR_JOB_ID"
+OUTPUT="stream.mp4"
+LAST_CHUNK=-1
+
+> "$OUTPUT"  # Create/truncate output file
+
+while true; do
+  RESP=$(curl -s "$BASE/api/render/$JOB_ID/poll?last_chunk=$LAST_CHUNK&timeout=30" \
+    -H "Authorization: Bearer $API_KEY" --max-time 45)
+
+  # Parse each chunk URL and download it (requires jq)
+  echo "$RESP" | jq -r '.new_chunks[].cdn_url' | while read -r URL; do
+    curl -s "$URL" >> "$OUTPUT"
+  done
+
+  # Update last_chunk to highest chunk_id received
+  NEW_LAST=$(echo "$RESP" | jq '[.new_chunks[].chunk_id] | max // empty')
+  [ -n "$NEW_LAST" ] && LAST_CHUNK=$NEW_LAST
+
+  STATUS=$(echo "$RESP" | jq -r '.status')
+  [ "$STATUS" = "complete" ] && echo "Done! Saved to $OUTPUT" && break
+  [ "$STATUS" = "failed" ] && echo "Error: $(echo "$RESP" | jq -r '.error')" && exit 1
+done
+```
+
+</CodeGroup>
 
 <Warning>
   Concatenating raw fMP4 chunks produces a playable file in most players, but for a clean final file use the download endpoint (`GET /api/render/{job_id}/download`) which returns a properly merged MP4 with `faststart` flag.
@@ -309,10 +401,27 @@ ffprobe -show_format -show_streams chunk_0.mp4
   <Accordion title="Set appropriate timeouts">
     The `timeout` parameter (default 30s, max 60s) controls how long the server holds your request. Set your HTTP client timeout higher than this value to avoid premature disconnections.
 
-    ```python
+    <CodeGroup>
+
+    ```python Python
     # Set requests timeout higher than poll timeout
     resp = requests.get(url, params={"timeout": 30}, timeout=45)
     ```
+
+    ```javascript JavaScript
+    // Use AbortSignal.timeout to set a client-side timeout higher than poll timeout
+    const resp = await fetch(url + "?timeout=30", {
+      headers, signal: AbortSignal.timeout(45000)
+    });
+    ```
+
+    ```bash cURL
+    # Set --max-time higher than the poll timeout parameter
+    curl "https://apis.viggle.ai/api/render/JOB_ID/poll?timeout=30" \
+      -H "Authorization: Bearer YOUR_API_KEY" --max-time 45
+    ```
+
+    </CodeGroup>
   </Accordion>
 
   <Accordion title="Handle reconnection gracefully">

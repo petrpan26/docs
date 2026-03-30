@@ -20,3 +20,70 @@ If the job fails during polling, the response includes an `error_code`:
 ```
 
 See [Error Codes](/error-codes) for the full list. Include the `error_code` when contacting **support@viggle.ai**.
+
+## Examples
+
+<CodeGroup>
+```python Python
+import requests
+
+job_id = "job_abc123xyz"
+headers = {"Authorization": "Bearer YOUR_API_KEY"}
+last_chunk = -1
+
+while True:
+    resp = requests.get(
+        f"https://apis.viggle.ai/api/render/{job_id}/poll",
+        headers=headers,
+        params={"last_chunk": last_chunk, "timeout": 30},
+    ).json()
+
+    if resp.get("error_code"):
+        print(f"Error {resp['error_code']}: {resp.get('error')}")
+        break
+
+    for chunk in resp.get("new_chunks", []):
+        print(f"Chunk {chunk['chunk_id']}: {chunk['cdn_url']}")
+        last_chunk = max(last_chunk, chunk["chunk_id"])
+
+    if resp["status"] == "complete":
+        print(f"Done! Full video: {resp.get('cdn_url')}")
+        break
+```
+
+```javascript JavaScript
+const jobId = "job_abc123xyz";
+const headers = { "Authorization": "Bearer YOUR_API_KEY" };
+let lastChunk = -1;
+
+while (true) {
+  const params = new URLSearchParams({ last_chunk: lastChunk, timeout: 30 });
+  const resp = await fetch(
+    `https://apis.viggle.ai/api/render/${jobId}/poll?${params}`,
+    { headers }
+  );
+  const data = await resp.json();
+
+  if (data.error_code) {
+    console.error(`Error ${data.error_code}: ${data.error}`);
+    break;
+  }
+
+  for (const chunk of data.new_chunks || []) {
+    console.log(`Chunk ${chunk.chunk_id}: ${chunk.cdn_url}`);
+    lastChunk = Math.max(lastChunk, chunk.chunk_id);
+  }
+
+  if (data.status === "complete") {
+    console.log(`Done! Full video: ${data.cdn_url}`);
+    break;
+  }
+}
+```
+
+```bash cURL
+# Long-poll for chunks (blocks up to 30s)
+curl "https://apis.viggle.ai/api/render/job_abc123xyz/poll?last_chunk=-1&timeout=30" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+</CodeGroup>

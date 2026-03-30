@@ -75,6 +75,12 @@ Send a character image and driving video directly. No preprocessing, no stored a
     }
     ```
 
+    ```bash cURL
+    # Poll until status is "complete" (no auth required)
+    curl "https://apis.viggle.ai/api/render/JOB_ID"
+    # Repeat every 5 seconds until: "status": "complete"
+    ```
+
     </CodeGroup>
   </Step>
 
@@ -106,7 +112,9 @@ Send a character image and driving video directly. No preprocessing, no stored a
 
 Pass additional fields alongside `ref_image` and `driving_video`:
 
-```python
+<CodeGroup>
+
+```python Python
 job = requests.post(f"{BASE}/api/render", headers=headers, files={
     "ref_image": open("character.png", "rb"),
     "driving_video": open("dance.mp4", "rb"),
@@ -116,6 +124,28 @@ job = requests.post(f"{BASE}/api/render", headers=headers, files={
     "fast": "true",
 }).json()
 ```
+
+```javascript JavaScript
+const form = new FormData();
+form.append("ref_image", imageFile);
+form.append("driving_video", videoFile);
+form.append("background_mode", "solid");
+form.append("bg_color", "0,255,0");
+form.append("fast", "true");
+
+const job = await fetch(`${BASE}/api/render`, {
+  method: "POST", headers, body: form
+}).then(r => r.json());
+```
+
+```bash cURL
+curl -X POST "https://apis.viggle.ai/api/render" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -F "ref_image=@character.png" -F "driving_video=@dance.mp4" \
+  -F "background_mode=solid" -F "bg_color=0,255,0" -F "fast=true"
+```
+
+</CodeGroup>
 
 See [Render Options](/render-options) for all available parameters.
 

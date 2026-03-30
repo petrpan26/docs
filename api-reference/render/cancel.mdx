@@ -5,3 +5,46 @@ description: 'Cancel or delete a render job'
 ---
 
 Cancel a running job or delete a completed one. Releases reserved resources and refunds credits for incomplete jobs.
+
+## Examples
+
+<CodeGroup>
+```python Python
+import requests
+
+job_id = "job_abc123xyz"
+headers = {"Authorization": "Bearer YOUR_API_KEY"}
+
+resp = requests.delete(
+    f"https://apis.viggle.ai/api/render/{job_id}",
+    headers=headers,
+)
+
+data = resp.json()
+if "detail" in data:
+    print(f"Error {data['detail']['error_code']}: {data['detail']['message']}")
+else:
+    print(f"Job {data['job_id']} status: {data['status']}")
+```
+
+```javascript JavaScript
+const jobId = "job_abc123xyz";
+
+const resp = await fetch(`https://apis.viggle.ai/api/render/${jobId}`, {
+  method: "DELETE",
+  headers: { "Authorization": "Bearer YOUR_API_KEY" },
+});
+
+const data = await resp.json();
+if (data.detail) {
+  console.error(`Error ${data.detail.error_code}: ${data.detail.message}`);
+} else {
+  console.log(`Job ${data.job_id} status: ${data.status}`);
+}
+```
+
+```bash cURL
+curl -X DELETE "https://apis.viggle.ai/api/render/job_abc123xyz" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+</CodeGroup>

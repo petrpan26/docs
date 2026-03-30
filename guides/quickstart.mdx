@@ -55,13 +55,35 @@ Pre-create characters and scenes to cut render latency by ~3x. Assets are stored
 
     Poll until ready:
 
-    ```python
+    <CodeGroup>
+
+    ```python Python
     while True:
         status = requests.get(f"{BASE}/api/characters/{character_id}", headers=headers).json()
         if status["status"] == "ready": break
         elif status["status"] == "failed": raise Exception(status.get("error_message"))
         time.sleep(5)
     ```
+
+    ```javascript JavaScript
+    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+    while (true) {
+      const status = await fetch(`${BASE}/api/characters/${characterId}`, { headers })
+        .then(r => r.json());
+      if (status.status === "ready") break;
+      if (status.status === "failed") throw new Error(status.error_message);
+      await sleep(5000);
+    }
+    ```
+
+    ```bash cURL
+    # Poll until status is "ready"
+    curl "https://apis.viggle.ai/api/characters/CHAR_ID" \
+      -H "Authorization: Bearer YOUR_API_KEY"
+    # Repeat every 5 seconds until: "status": "ready"
+    ```
+
+    </CodeGroup>
   </Step>
 
   <Step title="Create a scene" icon="film">
@@ -99,13 +121,34 @@ Pre-create characters and scenes to cut render latency by ~3x. Assets are stored
 
     Poll until ready:
 
-    ```python
+    <CodeGroup>
+
+    ```python Python
     while True:
         status = requests.get(f"{BASE}/api/scenes/{scene_id}", headers=headers).json()
         if status["status"] == "ready": break
         elif status["status"] == "failed": raise Exception(status.get("error_message"))
         time.sleep(5)
     ```
+
+    ```javascript JavaScript
+    while (true) {
+      const status = await fetch(`${BASE}/api/scenes/${sceneId}`, { headers })
+        .then(r => r.json());
+      if (status.status === "ready") break;
+      if (status.status === "failed") throw new Error(status.error_message);
+      await sleep(5000);
+    }
+    ```
+
+    ```bash cURL
+    # Poll until status is "ready"
+    curl "https://apis.viggle.ai/api/scenes/SCENE_ID" \
+      -H "Authorization: Bearer YOUR_API_KEY"
+    # Repeat every 5 seconds until: "status": "ready"
+    ```
+
+    </CodeGroup>
   </Step>
 
   <Step title="Render" icon="play">
@@ -181,26 +224,82 @@ Pre-create characters and scenes to cut render latency by ~3x. Assets are stored
 
 <AccordionGroup>
   <Accordion title="Render same character with different scenes">
-    ```python
+    <CodeGroup>
+
+    ```python Python
     job2 = requests.post(f"{BASE}/api/render", headers=headers, data={
         "character_id": character_id,
         "scene_id": another_scene_id,
     }).json()
     ```
+
+    ```javascript JavaScript
+    const form2 = new URLSearchParams();
+    form2.append("character_id", characterId);
+    form2.append("scene_id", anotherSceneId);
+    const job2 = await fetch(`${BASE}/api/render`, {
+      method: "POST", headers, body: form2
+    }).then(r => r.json());
+    ```
+
+    ```bash cURL
+    curl -X POST "https://apis.viggle.ai/api/render" \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -d "character_id=CHAR_ID" -d "scene_id=ANOTHER_SCENE_ID"
+    ```
+
+    </CodeGroup>
   </Accordion>
   <Accordion title="Render different character with same scene">
-    ```python
+    <CodeGroup>
+
+    ```python Python
     job3 = requests.post(f"{BASE}/api/render", headers=headers, data={
         "character_id": another_character_id,
         "scene_id": scene_id,
     }).json()
     ```
+
+    ```javascript JavaScript
+    const form3 = new URLSearchParams();
+    form3.append("character_id", anotherCharacterId);
+    form3.append("scene_id", sceneId);
+    const job3 = await fetch(`${BASE}/api/render`, {
+      method: "POST", headers, body: form3
+    }).then(r => r.json());
+    ```
+
+    ```bash cURL
+    curl -X POST "https://apis.viggle.ai/api/render" \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -d "character_id=ANOTHER_CHAR_ID" -d "scene_id=SCENE_ID"
+    ```
+
+    </CodeGroup>
   </Accordion>
   <Accordion title="List your assets">
-    ```python
+    <CodeGroup>
+
+    ```python Python
     characters = requests.get(f"{BASE}/api/characters", headers=headers).json()
     scenes = requests.get(f"{BASE}/api/scenes", headers=headers).json()
     ```
+
+    ```javascript JavaScript
+    const characters = await fetch(`${BASE}/api/characters`, { headers })
+      .then(r => r.json());
+    const scenes = await fetch(`${BASE}/api/scenes`, { headers })
+      .then(r => r.json());
+    ```
+
+    ```bash cURL
+    curl "https://apis.viggle.ai/api/characters" \
+      -H "Authorization: Bearer YOUR_API_KEY"
+    curl "https://apis.viggle.ai/api/scenes" \
+      -H "Authorization: Bearer YOUR_API_KEY"
+    ```
+
+    </CodeGroup>
   </Accordion>
 </AccordionGroup>
 

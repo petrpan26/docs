@@ -10,3 +10,60 @@ Download the completed video. Only available when job status is `complete`. Retu
 <Info>
   **Transparent Mode**: When `background_mode=transparent` was used, a separate mask video is also available at `GET /api/render/{job_id}/download/mask`. The mask is a grayscale video (white = character, black = background) for compositing in video editors.
 </Info>
+
+## Examples
+
+<CodeGroup>
+```python Python
+import requests
+
+job_id = "job_abc123xyz"
+headers = {"Authorization": "Bearer YOUR_API_KEY"}
+
+resp = requests.get(
+    f"https://apis.viggle.ai/api/render/{job_id}/download",
+    headers=headers,
+    allow_redirects=True,
+    stream=True,
+)
+
+if resp.status_code == 200:
+    with open("output.mp4", "wb") as f:
+        for chunk in resp.iter_content(chunk_size=8192):
+            f.write(chunk)
+    print("Downloaded output.mp4")
+else:
+    data = resp.json()
+    if "detail" in data:
+        print(f"Error {data['detail']['error_code']}: {data['detail']['message']}")
+    else:
+        print(f"Error: {data}")
+```
+
+```javascript JavaScript
+const jobId = "job_abc123xyz";
+
+const resp = await fetch(`https://apis.viggle.ai/api/render/${jobId}/download`, {
+  headers: { "Authorization": "Bearer YOUR_API_KEY" },
+});
+
+if (resp.ok) {
+  const blob = await resp.blob();
+  // Node.js: write to file
+  const fs = await import("fs");
+  fs.writeFileSync("output.mp4", Buffer.from(await blob.arrayBuffer()));
+  console.log("Downloaded output.mp4");
+} else {
+  const data = await resp.json();
+  if (data.detail) {
+    console.error(`Error ${data.detail.error_code}: ${data.detail.message}`);
+  }
+}
+```
+
+```bash cURL
+curl -L -o output.mp4 \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  "https://apis.viggle.ai/api/render/job_abc123xyz/download"
+```
+</CodeGroup>

@@ -90,6 +90,23 @@ Import pre-made templates from [viggle.ai](https://viggle.ai) instead of uploadi
     scene_id = scene["id"]
     ```
 
+    ```javascript JavaScript
+    const API_KEY = "YOUR_API_KEY", BASE = "https://apis.viggle.ai";
+
+    const scene = await fetch(`${BASE}/api/scenes/import`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        template_id: "YOUR_TEMPLATE_ID",
+        name: "My Imported Scene",
+      }),
+    }).then(r => r.json());
+    const sceneId = scene.id;
+    ```
+
     ```bash cURL
     curl -X POST "https://apis.viggle.ai/api/scenes/import" \
       -H "Authorization: Bearer YOUR_API_KEY" \
@@ -101,11 +118,32 @@ Import pre-made templates from [viggle.ai](https://viggle.ai) instead of uploadi
 
     Render with the imported scene:
 
-    ```python
+    <CodeGroup>
+
+    ```python Python
     job = requests.post(f"{BASE}/api/render",
         headers={"Authorization": f"Bearer {API_KEY}"},
         data={"character_id": "YOUR_CHARACTER_ID", "scene_id": scene_id}).json()
     ```
+
+    ```javascript JavaScript
+    const form = new URLSearchParams();
+    form.append("character_id", "YOUR_CHARACTER_ID");
+    form.append("scene_id", sceneId);
+    const job = await fetch(`${BASE}/api/render`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${API_KEY}` },
+      body: form,
+    }).then(r => r.json());
+    ```
+
+    ```bash cURL
+    curl -X POST "https://apis.viggle.ai/api/render" \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -d "character_id=YOUR_CHARACTER_ID" -d "scene_id=SCENE_ID"
+    ```
+
+    </CodeGroup>
   </Tab>
 
   <Tab title="Multi-person" icon="users">
@@ -124,18 +162,42 @@ Import pre-made templates from [viggle.ai](https://viggle.ai) instead of uploadi
         print(f"  Person: {segment['uuid']} (type: {segment['type']})")
     ```
 
+    ```javascript JavaScript
+    const API_KEY = "YOUR_API_KEY", BASE = "https://apis.viggle.ai";
+
+    const scene = await fetch(`${BASE}/api/scenes/import`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        template_id: "YOUR_MULTI_TEMPLATE_ID",
+        name: "Group Dance",
+      }),
+    }).then(r => r.json());
+    const sceneId = scene.id;
+
+    for (const segment of scene.segments) {
+      console.log(`  Person: ${segment.uuid} (type: ${segment.type})`);
+    }
+    ```
+
     ```bash cURL
     curl -X POST "https://apis.viggle.ai/api/scenes/import" \
       -H "Authorization: Bearer YOUR_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{"template_id": "YOUR_MULTI_TEMPLATE_ID", "name": "Group Dance"}'
+    # Response includes "segments" array with uuid and type for each person
     ```
 
     </CodeGroup>
 
     Map each person to a character, then render:
 
-    ```python
+    <CodeGroup>
+
+    ```python Python
     character_mapping = {}
     for segment in scene["segments"]:
         character_mapping[segment["uuid"]] = "YOUR_CHARACTER_ID"
@@ -144,13 +206,41 @@ Import pre-made templates from [viggle.ai](https://viggle.ai) instead of uploadi
         headers={"Authorization": f"Bearer {API_KEY}"},
         data={"scene_id": scene_id, "character_mapping": json.dumps(character_mapping)}).json()
     ```
+
+    ```javascript JavaScript
+    const characterMapping = {};
+    for (const segment of scene.segments) {
+      characterMapping[segment.uuid] = "YOUR_CHARACTER_ID";
+    }
+
+    const form = new URLSearchParams();
+    form.append("scene_id", sceneId);
+    form.append("character_mapping", JSON.stringify(characterMapping));
+    const job = await fetch(`${BASE}/api/render`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${API_KEY}` },
+      body: form,
+    }).then(r => r.json());
+    ```
+
+    ```bash cURL
+    # Replace SEGMENT_UUID values from the import response
+    curl -X POST "https://apis.viggle.ai/api/render" \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -d "scene_id=SCENE_ID" \
+      -d 'character_mapping={"SEGMENT_UUID_1":"CHAR_ID_1","SEGMENT_UUID_2":"CHAR_ID_2"}'
+    ```
+
+    </CodeGroup>
   </Tab>
 </Tabs>
 
 ## Complete example
 
 <Accordion title="End-to-end multi-person workflow">
-  ```python
+  <CodeGroup>
+
+  ```python Python
   import requests, json, time
   API_KEY, BASE = "YOUR_API_KEY", "https://apis.viggle.ai"
   headers = {"Authorization": f"Bearer {API_KEY}"}
@@ -177,6 +267,88 @@ Import pre-made templates from [viggle.ai](https://viggle.ai) instead of uploadi
   video = requests.get(f"{BASE}/api/render/{job['job_id']}/download", headers=headers)
   open("output.mp4", "wb").write(video.content)
   ```
+
+  ```javascript JavaScript
+  const fs = require("fs");
+
+  const API_KEY = "YOUR_API_KEY", BASE = "https://apis.viggle.ai";
+  const headers = { Authorization: `Bearer ${API_KEY}` };
+  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+  // 1. Import template
+  const scene = await fetch(`${BASE}/api/scenes/import`, {
+    method: "POST",
+    headers: { ...headers, "Content-Type": "application/json" },
+    body: JSON.stringify({ template_id: "TEMPLATE_ID_FROM_VIGGLE" }),
+  }).then(r => r.json());
+
+  // 2. Map characters to segments
+  const myCharacters = ["char_alice_id", "char_bob_id", "char_carol_id"];
+  const characterMapping = {};
+  scene.segments.forEach((seg, i) => {
+    if (i < myCharacters.length) characterMapping[seg.uuid] = myCharacters[i];
+  });
+
+  // 3. Start render
+  const form = new URLSearchParams();
+  form.append("scene_id", scene.id);
+  form.append("character_mapping", JSON.stringify(characterMapping));
+  const job = await fetch(`${BASE}/api/render`, {
+    method: "POST", headers, body: form
+  }).then(r => r.json());
+
+  // 4. Poll until complete
+  while (true) {
+    const status = await fetch(`${BASE}/api/render/${job.job_id}`).then(r => r.json());
+    if (status.status === "complete") break;
+    if (status.status === "failed") throw new Error(status.error);
+    await sleep(5000);
+  }
+
+  // 5. Download
+  const video = await fetch(`${BASE}/api/render/${job.job_id}/download`, { headers });
+  fs.writeFileSync("output.mp4", Buffer.from(await video.arrayBuffer()));
+  ```
+
+  ```bash cURL
+  #!/bin/bash
+  # End-to-end multi-person workflow (requires jq)
+  API_KEY="YOUR_API_KEY"
+  BASE="https://apis.viggle.ai"
+
+  # 1. Import template
+  SCENE=$(curl -s -X POST "$BASE/api/scenes/import" \
+    -H "Authorization: Bearer $API_KEY" \
+    -H "Content-Type: application/json" \
+    -d '{"template_id": "TEMPLATE_ID_FROM_VIGGLE"}')
+  SCENE_ID=$(echo "$SCENE" | jq -r '.id')
+  echo "Scene: $SCENE_ID"
+  echo "Segments:" && echo "$SCENE" | jq '.segments[] | "\(.uuid) (\(.type))"'
+
+  # 2. Build character mapping (replace UUIDs from step 1)
+  MAPPING='{"SEGMENT_UUID_1":"char_alice_id","SEGMENT_UUID_2":"char_bob_id"}'
+
+  # 3. Start render
+  JOB_ID=$(curl -s -X POST "$BASE/api/render" \
+    -H "Authorization: Bearer $API_KEY" \
+    -d "scene_id=$SCENE_ID" -d "character_mapping=$MAPPING" | jq -r '.job_id')
+  echo "Job: $JOB_ID"
+
+  # 4. Poll until complete
+  while true; do
+    STATUS=$(curl -s "$BASE/api/render/$JOB_ID" | jq -r '.status')
+    [ "$STATUS" = "complete" ] && break
+    [ "$STATUS" = "failed" ] && echo "Failed!" && exit 1
+    sleep 5
+  done
+
+  # 5. Download
+  curl -s -L -o output.mp4 "$BASE/api/render/$JOB_ID/download" \
+    -H "Authorization: Bearer $API_KEY"
+  echo "Saved output.mp4"
+  ```
+
+  </CodeGroup>
 </Accordion>
 
 ## Tips

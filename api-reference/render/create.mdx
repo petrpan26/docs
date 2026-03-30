@@ -41,6 +41,121 @@ Common error codes for this endpoint:
 
 See [Error Codes](/error-codes) for the full list. When contacting **support@viggle.ai**, include the `error_code` and your job ID.
 
+## Examples
+
+### On-Demand Render (upload files directly)
+
+<CodeGroup>
+```python Python
+import requests
+
+url = "https://apis.viggle.ai/api/render"
+headers = {"Authorization": "Bearer YOUR_API_KEY"}
+
+with open("character.png", "rb") as img, open("driving.mp4", "rb") as vid:
+    resp = requests.post(
+        url,
+        headers=headers,
+        files={
+            "ref_image": ("character.png", img, "image/png"),
+            "driving_video": ("driving.mp4", vid, "video/mp4"),
+        },
+        data={"background_mode": "original"},
+    )
+
+data = resp.json()
+if "detail" in data:
+    print(f"Error {data['detail']['error_code']}: {data['detail']['message']}")
+else:
+    print(f"Job created: {data['job_id']}")
+    print(f"Poll URL: {data['poll_url']}")
+```
+
+```javascript JavaScript
+const form = new FormData();
+form.append("ref_image", await fetch("character.png").then(r => r.blob()), "character.png");
+form.append("driving_video", await fetch("driving.mp4").then(r => r.blob()), "driving.mp4");
+form.append("background_mode", "original");
+
+const resp = await fetch("https://apis.viggle.ai/api/render", {
+  method: "POST",
+  headers: { "Authorization": "Bearer YOUR_API_KEY" },
+  body: form,
+});
+
+const data = await resp.json();
+if (data.detail) {
+  console.error(`Error ${data.detail.error_code}: ${data.detail.message}`);
+} else {
+  console.log(`Job created: ${data.job_id}`);
+  console.log(`Poll URL: ${data.poll_url}`);
+}
+```
+
+```bash cURL
+curl -X POST "https://apis.viggle.ai/api/render" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -F "ref_image=@character.png" \
+  -F "driving_video=@driving.mp4" \
+  -F "background_mode=original"
+```
+</CodeGroup>
+
+### Reusable Assets Render (pre-created character + scene)
+
+<CodeGroup>
+```python Python
+import requests
+
+url = "https://apis.viggle.ai/api/render"
+headers = {"Authorization": "Bearer YOUR_API_KEY"}
+
+resp = requests.post(
+    url,
+    headers=headers,
+    data={
+        "character_id": "char_550e8400e29b41d4",
+        "scene_id": "scene_660e8400e29b41d4",
+        "background_mode": "original",
+    },
+)
+
+data = resp.json()
+if "detail" in data:
+    print(f"Error {data['detail']['error_code']}: {data['detail']['message']}")
+else:
+    print(f"Job created: {data['job_id']}")
+```
+
+```javascript JavaScript
+const form = new FormData();
+form.append("character_id", "char_550e8400e29b41d4");
+form.append("scene_id", "scene_660e8400e29b41d4");
+form.append("background_mode", "original");
+
+const resp = await fetch("https://apis.viggle.ai/api/render", {
+  method: "POST",
+  headers: { "Authorization": "Bearer YOUR_API_KEY" },
+  body: form,
+});
+
+const data = await resp.json();
+if (data.detail) {
+  console.error(`Error ${data.detail.error_code}: ${data.detail.message}`);
+} else {
+  console.log(`Job created: ${data.job_id}`);
+}
+```
+
+```bash cURL
+curl -X POST "https://apis.viggle.ai/api/render" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -F "character_id=char_550e8400e29b41d4" \
+  -F "scene_id=scene_660e8400e29b41d4" \
+  -F "background_mode=original"
+```
+</CodeGroup>
+
 ## Next Steps
 
 After creating a render job, you can either:
