@@ -3,54 +3,142 @@ title: 'Errors'
 description: 'API error codes and handling'
 ---
 
-All errors return JSON with a `detail` field:
+All errors return JSON with a structured `detail` field containing an error code:
 
 ```json
 {
-  "detail": "Human-readable error message"
+  "detail": {
+    "error_code": "CS-ORIV-001",
+    "message": "Reference image is required",
+    "action": "Upload a ref_image (PNG/JPG)"
+  }
 }
 ```
 
+When contacting support, always include the `error_code` from the response. Email **support@viggle.ai** with the error code and your job ID for fastest resolution.
+
+## Error response fields
+
+| Field | Description |
+|-------|-------------|
+| `error_code` | Unique identifier (e.g. `CS-ORIV-001`). Always include this when contacting support. |
+| `message` | Human-readable description of what went wrong |
+| `action` | What you can do to fix it |
+| `detail` | Additional context (not always present) |
+
+## Error codes by category
+
+### Authentication (401)
+
+| Code | Message | Action |
+|------|---------|--------|
+| `CS-ORAU-001` | API key is required | Include `Authorization: Bearer sk-...` header |
+| `CS-ORAU-002` | API key is invalid or not found | Check your API key is correct |
+
+### Credits (402)
+
+| Code | Message | Action |
+|------|---------|--------|
+| `CS-ORCR-001` | Not enough credits for this job | Top up your credits in the [dashboard](https://portal.viggle.ai/dashboard) |
+
+### Input validation (400)
+
+| Code | Message | Action |
+|------|---------|--------|
+| `CS-ORIV-001` | Reference image is required | Upload a `ref_image` (PNG/JPG) |
+| `CS-ORIV-002` | Driving video is required | Upload a `driving_video` (MP4) |
+| `CS-ORIV-003` | Video format not supported | Upload MP4, MOV, or AVI format |
+| `CS-ORIV-004` | Video exceeds maximum duration | Keep video under 5 minutes |
+| `CS-ORIV-005` | Video file too large | Keep file under 500MB |
+| `CS-ORIV-006` | Video resolution too high | Keep resolution under 4096x4096 |
+| `CS-ORIV-007` | Could not read video file | Ensure the file is a valid video |
+| `CS-ORIV-008` | Character not found | Check the `character_id` exists |
+| `CS-ORIV-009` | Scene not found | Check the `scene_id` exists |
+| `CS-ORIV-010` | Scene preprocessing not complete | Wait for scene status to be `ready` before rendering |
+| `CS-ORIV-011` | Invalid background mode | Use `original`, `solid`, or `transparent` |
+| `CS-ORIV-012` | Invalid character_mapping JSON | Provide valid JSON for multi-character mapping |
+
+### Job status (404 / 410)
+
+| Code | Message | Action |
+|------|---------|--------|
+| `CS-ORJC-001` | Job not found | Check the job ID is correct |
+| `CS-ORJC-003` | Result has expired | Submit a new job — results expire after 24 hours |
+| `CS-ORJC-005` | Job failed during processing | Retry the job. If persistent, contact support with the error code. |
+
+### Processing errors (500)
+
+| Code | Message | Action |
+|------|---------|--------|
+| `CS-ENEC-001` | Encoder could not access the video | Retry the job |
+| `CS-ENEC-004` | No humans detected in some frames | Ensure the person is visible throughout the video |
+| `CS-RNRD-003` | Processing resources exceeded | Try a lower resolution video |
+| `CS-MGMR-001` | Some video chunks are missing | Retry the job |
+
+### Capacity (503)
+
+| Code | Message | Action |
+|------|---------|--------|
+| `CS-ORRS-001` | All workers are busy | Retry in a few seconds or use normal mode instead of fast mode |
+
 ## HTTP status codes
 
-| Status | Name | Common Causes | Solution |
-|--------|------|---------------|----------|
-| 400 | Bad Request | Missing required fields, invalid parameter types, malformed JSON | Check your request against the API docs |
-| 401 | Unauthorized | Missing `Authorization` header, invalid or expired API key, incorrect format | Include `Authorization: Bearer YOUR_API_KEY` in headers |
-| 402 | Payment Required | Account out of credits, operation requires more than available | Add credits in the [dashboard](https://portal.viggle.ai/dashboard) |
-| 404 | Not Found | Invalid or deleted resource ID, resource belongs to a different account | Verify the ID exists in your account |
-| 422 | Unprocessable | Character/scene not `ready` yet, asset still processing or failed | Poll status until `ready` before creating render jobs |
-| 429 | Rate Limited | Exceeding org concurrency limit (default: 5 concurrent render jobs) | Wait for jobs to finish, or use exponential backoff |
-| 503 | Unavailable | Requesting `fast: true` when capacity is unavailable, high system load | Retry with `fast: false` or wait and retry later |
+| Status | Meaning | Error codes |
+|--------|---------|-------------|
+| 400 | Bad Request | `CS-ORIV-*` |
+| 401 | Unauthorized | `CS-ORAU-*` |
+| 402 | Payment Required | `CS-ORCR-*` |
+| 404 | Not Found | `CS-ORJC-001` |
+| 410 | Gone | `CS-ORJC-003` |
+| 500 | Server Error | `CS-ENEC-*`, `CS-RNRD-*`, `CS-MGMR-*` |
+| 503 | Unavailable | `CS-ORRS-*` |
 
 ## Error handling
 
 <AccordionGroup>
   <Accordion title="Implement retry logic">
-    For transient errors (429, 503), use exponential backoff:
+    For transient errors (500, 503), use exponential backoff:
 
     ```python
     import time, requests
 
-    def api_request_with_retry(url, max_retries=3):
+    def api_request_with_retry(url, headers, max_retries=3):
         for attempt in range(max_retries):
             response = requests.get(url, headers=headers)
-            if response.status_code == 429:
+            if response.status_code in (500, 503):
                 time.sleep(2 ** attempt)
                 continue
             return response
         raise Exception("Max retries exceeded")
     ```
   </Accordion>
+  <Accordion title="Handle error codes">
+    Check for error codes in the response:
+
+    ```python
+    response = requests.post(url, headers=headers, files=files)
+    if response.status_code != 200:
+        error = response.json().get("detail", {})
+        code = error.get("error_code", "unknown")
+        message = error.get("message", response.text)
+        action = error.get("action", "")
+        print(f"Error {code}: {message}")
+        print(f"Fix: {action}")
+        # Forward to support: support@viggle.ai with the error_code
+    ```
+  </Accordion>
   <Accordion title="Handle processing failures">
-    Always check for failed status when polling:
+    Always check for failed status and error codes when polling:
 
     ```python
     while True:
-        status = get_status(resource_id)
-        if status["status"] == "ready": break
+        status = get_status(job_id)
+        if status["status"] == "complete":
+            break
         elif status["status"] == "failed":
-            print(f"Error: {status['error']}")
+            code = status.get("error_code", "unknown")
+            print(f"Job failed: {code} - {status.get('error')}")
+            print("Forward this error code to support@viggle.ai")
             break
         time.sleep(5)
     ```
@@ -61,20 +149,20 @@ All errors return JSON with a `detail` field:
     ```python
     character = get_character(character_id)
     scene = get_scene(scene_id)
-    if character["status"] != "ready": raise Exception("Character not ready")
-    if scene["status"] != "ready": raise Exception("Scene not ready")
+    if character["status"] != "ready":
+        raise Exception("Character not ready — wait for status 'ready'")
+    if scene["status"] != "ready":
+        raise Exception("Scene not ready — wait for status 'ready'")
     create_render_job(character_id, scene_id)
     ```
   </Accordion>
 </AccordionGroup>
 
-## Common scenarios
+## Need help?
 
-| Scenario | Error | Solution |
-|----------|-------|----------|
-| API key not included | 401 | Add `Authorization: Bearer KEY` header |
-| Rendering with pending character | 422 | Wait for character status `ready` |
-| Out of credits | 402 | Purchase more credits |
-| Fast mode unavailable | 503 | Set `fast: false` or retry later |
-| Invalid character ID | 404 | Verify ID exists in your account |
-| Rate limited | 429 | Wait or retry with backoff |
+If you encounter an error that persists after retrying, email **support@viggle.ai** with:
+1. The `error_code` from the response
+2. Your job ID
+3. The request you made (endpoint, parameters)
+
+This helps us resolve your issue quickly.
