@@ -8,3 +8,15 @@ description: 'Long-poll for video chunks as they render'
 Long-poll for new video chunks. Blocks until chunks are ready, job completes, or timeout. Use for real-time progressive playback.
 
 Each chunk is a [fragmented MP4 (fMP4)](/guides/fmp4-format) file that can be played immediately via [Media Source Extensions (MSE)](/guides/live-render#progressive-playback-with-fmp4--mse) or saved to disk. See the [Live Rendering guide](/guides/live-render) for complete streaming examples.
+
+If the job fails during polling, the response includes an `error_code`:
+
+```json
+{
+  "status": "failed",
+  "error": "Job failed during processing",
+  "error_code": "CS-ORJC-005"
+}
+```
+
+See [Error Codes](/error-codes) for the full list. Include the `error_code` when contacting **support@viggle.ai**.

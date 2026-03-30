@@ -14,6 +14,33 @@ Start a video render job using `multipart/form-data`. Both character and scene m
   - **Reusable Assets:** Pre-create characters and scenes (both free — refunded when first render starts) for reuse across renders. Each render costs 1 credit/second.
 </Note>
 
+## Error Handling
+
+If the request fails, the response includes a structured error with an `error_code`:
+
+```json
+{
+  "detail": {
+    "error_code": "CS-ORIV-001",
+    "message": "Reference image is required",
+    "action": "Upload a ref_image (PNG/JPG)"
+  }
+}
+```
+
+Common error codes for this endpoint:
+
+| Code | Cause | Fix |
+|------|-------|-----|
+| `CS-ORAU-001` | Missing API key | Add `Authorization: Bearer sk-...` header |
+| `CS-ORAU-002` | Invalid API key | Check your key is correct |
+| `CS-ORIV-001` | Missing reference image | Upload `ref_image` |
+| `CS-ORIV-002` | Missing driving video | Upload `driving_video` or provide `scene_id` |
+| `CS-ORIV-004` | Video too long | Keep under 5 minutes |
+| `CS-ORCR-001` | Insufficient credits | Top up credits |
+
+See [Error Codes](/error-codes) for the full list. When contacting **support@viggle.ai**, include the `error_code` and your job ID.
+
 ## Next Steps
 
 After creating a render job, you can either:

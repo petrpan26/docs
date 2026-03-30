@@ -264,6 +264,12 @@ components:
         error:
           type: string
           nullable: true
+          description: Error message if job failed
+        error_code:
+          type: string
+          nullable: true
+          description: Machine-readable error code (e.g. CS-RNRD-003). Include this when contacting support@viggle.ai.
+          example: CS-ORJC-005
         created_at:
           type: string
           format: date-time
@@ -338,12 +344,32 @@ components:
         error:
           type: string
           nullable: true
+          description: Error message if job failed
+        error_code:
+          type: string
+          nullable: true
+          description: Machine-readable error code. Include when contacting support@viggle.ai.
+          example: CS-ORJC-005
 
     Error:
       type: object
+      description: Structured error response. Include the error_code when contacting support@viggle.ai.
       properties:
         detail:
-          type: string
+          type: object
+          properties:
+            error_code:
+              type: string
+              description: Unique error code for debugging
+              example: CS-ORIV-001
+            message:
+              type: string
+              description: Human-readable error description
+              example: Reference image is required
+            action:
+              type: string
+              description: Suggested fix
+              example: Upload a ref_image (PNG/JPG)
           example: "API key required. Use Authorization: Bearer sk-xxx"
 
     Deleted:
