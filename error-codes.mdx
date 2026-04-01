@@ -34,6 +34,7 @@ When contacting support, always include the `error_code` from the response. Emai
 |------|---------|--------|
 | `CS-ORAU-001` | API key is required | Include `Authorization: Bearer sk-...` header |
 | `CS-ORAU-002` | API key is invalid or not found | Check your API key is correct |
+| `CS-ORAU-003` | API key has expired | Generate a new API key in the [dashboard](https://portal.viggle.ai/dashboard) |
 
 ### Credits (402)
 
@@ -57,6 +58,8 @@ When contacting support, always include the `error_code` from the response. Emai
 | `CS-ORIV-010` | Scene preprocessing not complete | Wait for scene status to be `ready` before rendering |
 | `CS-ORIV-011` | Invalid background mode | Use `original`, `solid`, or `transparent` |
 | `CS-ORIV-012` | Invalid character_mapping JSON | Provide valid JSON for multi-character mapping |
+| `CS-ORVV-002` | Video has no frames | Upload a valid video with at least 1 frame |
+| `CS-ORVV-003` | Video FPS unreadable | Re-encode the video with a standard frame rate |
 
 ### Job status (404 / 410)
 
@@ -72,7 +75,8 @@ When contacting support, always include the `error_code` from the response. Emai
 |------|---------|--------|
 | `CS-ENEC-001` | Encoder could not access the video | Retry the job |
 | `CS-ENEC-004` | No humans detected in some frames | Ensure the person is visible throughout the video |
-| `CS-RNRD-003` | Processing resources exceeded | Try a lower resolution video |
+| `CS-ENEC-006` | GPU out of memory during encoding | Try a lower resolution or shorter video |
+| `CS-RNRD-003` | GPU out of memory during rendering | Try a lower resolution video |
 | `CS-MGMR-001` | Some video chunks are missing | Retry the job |
 
 ### Capacity (503)
@@ -81,17 +85,54 @@ When contacting support, always include the `error_code` from the response. Emai
 |------|---------|--------|
 | `CS-ORRS-001` | All workers are busy | Retry in a few seconds or use normal mode instead of fast mode |
 
+### Internal errors (500)
+
+<Warning>
+These errors indicate an issue on our infrastructure. **You do not need to change anything in your request.** Simply retry the job. If the error persists, forward the `error_code` and `job_id` to **support@viggle.ai** so our engineering team can investigate.
+</Warning>
+
+| Code | Message | When | Action |
+|------|---------|------|--------|
+| `CS-ORPH-001` | Worker lost during processing | A processing worker crashed or became unreachable | Retry. Forward to support if persistent. |
+| `CS-ORPH-002` | Internal data transfer failed | Worker-to-worker data delivery failed | Retry. Forward to support if persistent. |
+| `CS-ORSH-001` | Worker crashed | A processing worker restarted unexpectedly | Retry. Forward to support if persistent. |
+| `CS-ORTO-001` | Job timed out | No progress detected for extended period | Retry. Try a shorter video if it keeps timing out. |
+| `CS-ORTO-002` | Character processing timeout | Reference image processing took too long | Retry with a different reference image. |
+| `CS-ORAU-004` | API key validation error | Internal auth system error | Retry. Forward to support if persistent. |
+| `CS-ORCR-002` | Credit reservation failed | Internal billing system error | Retry. Forward to support if persistent. |
+| `CS-ENEC-002` | Detection failed | Body detection model error | Retry. Forward to support if persistent. |
+| `CS-ENEC-003` | Encoder model load failed | GPU model initialization error | Retry. Forward to support if persistent. |
+| `CS-ENEC-005` | Encoding timeout | Encoding took too long | Retry. Try a shorter video. |
+| `CS-INIP-001` | Inpaint model load failed | GPU model initialization error | Retry. Forward to support if persistent. |
+| `CS-INIP-002` | Encoded data not found | Pipeline data delivery issue | Retry. Forward to support if persistent. |
+| `CS-INIP-003` | Inpaint processing failed | Background removal error | Retry. Forward to support if persistent. |
+| `CS-INIP-004` | GPU out of memory (inpaint) | Insufficient GPU memory | Retry. Try a lower resolution video. |
+| `CS-RNRD-001` | Reference state load failed | Character data not available | Retry. Forward to support if persistent. |
+| `CS-RNRD-002` | Driving params load failed | Pipeline data delivery issue | Retry. Forward to support if persistent. |
+| `CS-RNRD-004` | Render model load failed | GPU model initialization error | Retry. Forward to support if persistent. |
+| `CS-RNRD-005` | Video writer failed | Output encoding error | Retry. Forward to support if persistent. |
+| `CS-RNRD-006` | Character processRef failed | Reference image processing error | Retry with a different reference image. |
+| `CS-RNRD-007` | Chunk rendering timeout | Single chunk took too long | Retry. Forward to support if persistent. |
+| `CS-MGMR-002` | Video concatenation failed | FFmpeg merge error | Retry. Forward to support if persistent. |
+| `CS-MGMR-003` | Audio sync failed | Audio muxing error | Retry. Forward to support if persistent. |
+| `CS-MGMR-004` | Merge output empty | Output file generation failed | Retry. Forward to support if persistent. |
+| `CS-ORGS-001` | Cloud upload failed | Storage upload error | Retry. Forward to support if persistent. |
+| `CS-ORGS-002` | Cloud download failed | Storage download error | Retry. Forward to support if persistent. |
+| `CS-ORRD-001` | Database connection failed | Redis connectivity issue | Retry. Forward to support if persistent. |
+| `CS-ORSH-002` | Database error | Internal database error | Retry. Forward to support if persistent. |
+| `CS-ORSH-999` | Unknown error | Unexpected internal error | Retry. Forward to support if persistent. |
+
 ## HTTP status codes
 
 | Status | Meaning | Error codes |
 |--------|---------|-------------|
-| 400 | Bad Request | `CS-ORIV-*` |
-| 401 | Unauthorized | `CS-ORAU-*` |
-| 402 | Payment Required | `CS-ORCR-*` |
+| 400 | Bad Request — fix your request | `CS-ORIV-*`, `CS-ORVV-*` |
+| 401 | Unauthorized — check API key | `CS-ORAU-*` |
+| 402 | Payment Required — top up credits | `CS-ORCR-001` |
 | 404 | Not Found | `CS-ORJC-001` |
-| 410 | Gone | `CS-ORJC-003` |
-| 500 | Server Error | `CS-ENEC-*`, `CS-RNRD-*`, `CS-MGMR-*` |
-| 503 | Unavailable | `CS-ORRS-*` |
+| 410 | Gone — result expired | `CS-ORJC-003` |
+| 500 | Server Error — retry, forward to support if persistent | `CS-ENEC-*`, `CS-INIP-*`, `CS-RNRD-*`, `CS-MGMR-*`, `CS-ORPH-*`, `CS-ORSH-*`, `CS-ORTO-*`, `CS-ORGS-*`, `CS-ORRD-*` |
+| 503 | Unavailable — retry later | `CS-ORRS-001` |
 
 ## Error handling
 
@@ -128,17 +169,27 @@ When contacting support, always include the `error_code` from the response. Emai
     ```
   </Accordion>
   <Accordion title="Handle processing failures">
-    Always check for failed status and error codes when polling:
+    Always check for failed status and error codes when polling. Internal errors (`CS-ORPH-*`, `CS-ORSH-*`, `CS-ORTO-*`) should be retried automatically and escalated to support if they persist:
 
     ```python
+    INTERNAL_ERRORS = {"CS-ORPH-001", "CS-ORPH-002", "CS-ORSH-001", "CS-ORSH-999", "CS-ORTO-001"}
+
     while True:
         status = get_status(job_id)
         if status["status"] == "complete":
             break
         elif status["status"] == "failed":
             code = status.get("error_code", "unknown")
-            print(f"Job failed: {code} - {status.get('error')}")
-            print("Forward this error code to support@viggle.ai")
+            error = status.get("error", "")
+            print(f"Job failed: {code} - {error}")
+
+            if code in INTERNAL_ERRORS:
+                # Internal error — safe to retry
+                print("Internal error. Retrying...")
+                job_id = submit_new_job()  # retry
+            else:
+                # User error — fix the request
+                print(f"Fix: check the error code at https://docs.viggle.ai/error-codes")
             break
         time.sleep(5)
     ```
@@ -162,7 +213,9 @@ When contacting support, always include the `error_code` from the response. Emai
 
 If you encounter an error that persists after retrying, email **support@viggle.ai** with:
 1. The `error_code` from the response
-2. Your job ID
-3. The request you made (endpoint, parameters)
+2. Your job ID (`job_id`)
+3. The timestamp of the error
 
-This helps us resolve your issue quickly.
+<Tip>
+**Internal errors** (codes starting with `CS-ORPH`, `CS-ORSH`, or `CS-ORTO`) are infrastructure issues on our side. You don't need to change your request — just retry. If the same internal error occurs 3+ times, please forward the error code and job IDs to **support@viggle.ai** so our engineering team can investigate the root cause.
+</Tip>
