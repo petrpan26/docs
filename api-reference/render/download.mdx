@@ -8,7 +8,7 @@ description: 'Download the completed video'
 Download the completed video. Only available when job status is `complete`. Returns a `302` redirect to the CDN URL where the video is hosted. The downloaded file is a standard MP4 with `faststart` (moov atom at the beginning), not the [fMP4 format](/guides/fmp4-format) used for individual chunks.
 
 <Info>
-  **Transparent Mode**: When `background_mode=transparent` was used, a separate mask video is also available at `GET /api/render/{job_id}/download/mask`. The mask is a grayscale video (white = character, black = background) for compositing in video editors.
+  **Transparent Mode**: When `background_mode=transparent` was used, the poll response includes a `mask_cdn_url` field with a direct link to the mask video. The mask is a grayscale video (white = character, black = background) for compositing in video editors.
 </Info>
 
 ## Examples

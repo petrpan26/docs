@@ -58,14 +58,17 @@ graph LR
     </CodeGroup>
   </Step>
 
-  <Step title="Wait and check for mask URL" icon="clock">
-    The completed job includes both video and mask URLs.
+  <Step title="Poll for completion" icon="clock">
+    Poll the status endpoint until complete. The response includes both `cdn_url` and `mask_cdn_url`.
 
     <CodeGroup>
 
     ```python Python
     while True:
-        status = requests.get(f"{BASE}/api/render/{job['job_id']}").json()
+        status = requests.get(
+            f"{BASE}/api/render/{job['job_id']}/poll",
+            headers=headers
+        ).json()
         if status["status"] == "complete":
             print(f"Video: {status['cdn_url']}")
             print(f"Mask:  {status['mask_cdn_url']}")
@@ -77,7 +80,10 @@ graph LR
     ```javascript JavaScript
     const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     while (true) {
-      const status = await fetch(`${BASE}/api/render/${job.job_id}`).then(r => r.json());
+      const status = await fetch(
+        `${BASE}/api/render/${job.job_id}/poll`,
+        { headers }
+      ).then(r => r.json());
       if (status.status === "complete") {
         console.log(`Video: ${status.cdn_url}`);
         console.log(`Mask:  ${status.mask_cdn_url}`);
@@ -89,43 +95,45 @@ graph LR
     ```
 
     ```bash cURL
-    # Poll until status is "complete" (no auth required)
-    curl -s "https://apis.viggle.ai/api/render/JOB_ID"
+    curl -s "https://apis.viggle.ai/api/render/JOB_ID/poll" \
+      -H "Authorization: Bearer YOUR_API_KEY"
     # Response includes: "cdn_url" and "mask_cdn_url"
-    # Repeat every 5 seconds until: "status": "complete"
     ```
 
     </CodeGroup>
   </Step>
 
   <Step title="Download both files" icon="download">
+    Use the CDN URLs from the poll response to download the video and mask.
+
     <CodeGroup>
 
     ```python Python
-    for endpoint, filename in [("download", "character.mp4"), ("download/mask", "character_mask.mp4")]:
-        resp = requests.get(f"{BASE}/api/render/{job['job_id']}/{endpoint}", headers=headers)
-        open(filename, "wb").write(resp.content)
+    import urllib.request
+    for url, filename in [
+        (status["cdn_url"], "character.mp4"),
+        (status["mask_cdn_url"], "character_mask.mp4"),
+    ]:
+        urllib.request.urlretrieve(url, filename)
         print(f"Saved {filename}")
     ```
 
     ```javascript JavaScript
     const fs = require("fs");
-    const downloads = [
-      { endpoint: "download", filename: "character.mp4" },
-      { endpoint: "download/mask", filename: "character_mask.mp4" },
-    ];
-    for (const { endpoint, filename } of downloads) {
-      const resp = await fetch(`${BASE}/api/render/${job.job_id}/${endpoint}`, { headers });
+    for (const [url, filename] of [
+      [status.cdn_url, "character.mp4"],
+      [status.mask_cdn_url, "character_mask.mp4"],
+    ]) {
+      const resp = await fetch(url);
       fs.writeFileSync(filename, Buffer.from(await resp.arrayBuffer()));
       console.log(`Saved ${filename}`);
     }
     ```
 
     ```bash cURL
-    curl -L "https://apis.viggle.ai/api/render/JOB_ID/download" \
-      -H "Authorization: Bearer YOUR_API_KEY" -o character.mp4
-    curl -L "https://apis.viggle.ai/api/render/JOB_ID/download/mask" \
-      -H "Authorization: Bearer YOUR_API_KEY" -o character_mask.mp4
+    # Use cdn_url and mask_cdn_url from the poll response
+    curl -L -o character.mp4 "CDN_URL_FROM_POLL"
+    curl -L -o character_mask.mp4 "MASK_CDN_URL_FROM_POLL"
     ```
 
     </CodeGroup>
@@ -161,25 +169,30 @@ graph LR
   <CodeGroup>
 
   ```python Python
-  import requests, time
+  import requests, time, urllib.request
 
   API_KEY, BASE = "YOUR_API_KEY", "https://apis.viggle.ai"
   headers = {"Authorization": f"Bearer {API_KEY}"}
 
+  # 1. Start transparent render
   job = requests.post(f"{BASE}/api/render", headers=headers, data={
       "character_id": "char_xxx", "scene_id": "scene_xxx",
       "background_mode": "transparent",
   }).json()
 
+  # 2. Poll until complete
   while True:
-      status = requests.get(f"{BASE}/api/render/{job['job_id']}").json()
+      status = requests.get(f"{BASE}/api/render/{job['job_id']}/poll", headers=headers).json()
       if status["status"] == "complete": break
       elif status["status"] == "failed": raise Exception(status.get("error"))
       time.sleep(5)
 
-  for endpoint, filename in [("download", "character.mp4"), ("download/mask", "character_mask.mp4")]:
-      resp = requests.get(f"{BASE}/api/render/{job['job_id']}/{endpoint}", headers=headers)
-      open(filename, "wb").write(resp.content)
+  # 3. Download video and mask via CDN URLs
+  for url, filename in [
+      (status["cdn_url"], "character.mp4"),
+      (status["mask_cdn_url"], "character_mask.mp4"),
+  ]:
+      urllib.request.urlretrieve(url, filename)
       print(f"Saved {filename}")
   ```
 
@@ -201,19 +214,20 @@ graph LR
   }).then(r => r.json());
 
   // 2. Poll until complete
+  let status;
   while (true) {
-    const status = await fetch(`${BASE}/api/render/${job.job_id}`).then(r => r.json());
+    status = await fetch(`${BASE}/api/render/${job.job_id}/poll`, { headers }).then(r => r.json());
     if (status.status === "complete") break;
     if (status.status === "failed") throw new Error(status.error);
     await sleep(5000);
   }
 
-  // 3. Download video and mask
-  for (const { endpoint, filename } of [
-    { endpoint: "download", filename: "character.mp4" },
-    { endpoint: "download/mask", filename: "character_mask.mp4" },
+  // 3. Download video and mask via CDN URLs
+  for (const [url, filename] of [
+    [status.cdn_url, "character.mp4"],
+    [status.mask_cdn_url, "character_mask.mp4"],
   ]) {
-    const resp = await fetch(`${BASE}/api/render/${job.job_id}/${endpoint}`, { headers });
+    const resp = await fetch(url);
     fs.writeFileSync(filename, Buffer.from(await resp.arrayBuffer()));
     console.log(`Saved ${filename}`);
   }
@@ -234,17 +248,16 @@ graph LR
 
   # 2. Poll until complete
   while true; do
-    STATUS=$(curl -s "$BASE/api/render/$JOB_ID" | jq -r '.status')
+    RESULT=$(curl -s "$BASE/api/render/$JOB_ID/poll" -H "Authorization: Bearer $API_KEY")
+    STATUS=$(echo "$RESULT" | jq -r '.status')
     [ "$STATUS" = "complete" ] && break
     [ "$STATUS" = "failed" ] && echo "Failed!" && exit 1
     sleep 5
   done
 
-  # 3. Download video and mask
-  curl -s -L -o character.mp4 "$BASE/api/render/$JOB_ID/download" \
-    -H "Authorization: Bearer $API_KEY"
-  curl -s -L -o character_mask.mp4 "$BASE/api/render/$JOB_ID/download/mask" \
-    -H "Authorization: Bearer $API_KEY"
+  # 3. Download video and mask via CDN URLs
+  curl -sL -o character.mp4 "$(echo "$RESULT" | jq -r '.cdn_url')"
+  curl -sL -o character_mask.mp4 "$(echo "$RESULT" | jq -r '.mask_cdn_url')"
   echo "Saved character.mp4 and character_mask.mp4"
   ```
 

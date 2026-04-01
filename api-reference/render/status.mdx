@@ -7,10 +7,6 @@ description: 'Check render job status and progress'
 
 Check job status. Returns immediately. Poll every 5 seconds until `complete` or `failed`.
 
-<Note>
-  This endpoint does **not** require authentication. You can poll job status without an API key.
-</Note>
-
 When a job fails, the response includes `error` and `error_code` fields:
 
 ```json
@@ -32,11 +28,11 @@ import requests
 import time
 
 job_id = "job_abc123xyz"
+headers = {"Authorization": "Bearer YOUR_API_KEY"}
 url = f"https://apis.viggle.ai/api/render/{job_id}"
 
-# Poll until complete or failed (no auth required)
 while True:
-    data = requests.get(url).json()
+    data = requests.get(url, headers=headers).json()
     status = data["status"]
     print(f"Status: {status}")
 
@@ -52,11 +48,11 @@ while True:
 
 ```javascript JavaScript
 const jobId = "job_abc123xyz";
+const headers = { "Authorization": "Bearer YOUR_API_KEY" };
 const url = `https://apis.viggle.ai/api/render/${jobId}`;
 
-// Poll until complete or failed (no auth required)
 while (true) {
-  const resp = await fetch(url);
+  const resp = await fetch(url, { headers });
   const data = await resp.json();
   console.log(`Status: ${data.status}`);
 
@@ -73,7 +69,7 @@ while (true) {
 ```
 
 ```bash cURL
-# Check job status (no auth required)
-curl "https://apis.viggle.ai/api/render/job_abc123xyz"
+curl "https://apis.viggle.ai/api/render/job_abc123xyz" \
+  -H "Authorization: Bearer YOUR_API_KEY"
 ```
 </CodeGroup>

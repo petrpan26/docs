@@ -59,9 +59,9 @@ if "detail" in resp:
 job_id = resp["job_id"]
 print(f"Job created: {job_id}")
 
-# 2. Poll for status (no auth required)
+# 2. Poll for status
 while True:
-    status = requests.get(f"{BASE}/api/render/{job_id}").json()
+    status = requests.get(f"{BASE}/api/render/{job_id}", headers=headers).json()
     print(f"Status: {status['status']} ({status.get('progress', {}).get('percent', 0)}%)")
 
     if status["status"] == "complete":
@@ -109,9 +109,9 @@ if (data.detail) {
 const jobId = data.job_id;
 console.log(`Job created: ${jobId}`);
 
-// 2. Poll for status (no auth required)
+// 2. Poll for status
 while (true) {
-  const status = await fetch(`${BASE}/api/render/${jobId}`).then(r => r.json());
+  const status = await fetch(`${BASE}/api/render/${jobId}`, { headers }).then(r => r.json());
   console.log(`Status: ${status.status} (${status.progress?.percent ?? 0}%)`);
 
   if (status.status === "complete") break;
@@ -141,9 +141,9 @@ JOB=$(curl -s -X POST "https://apis.viggle.ai/api/render" \
 JOB_ID=$(echo "$JOB" | jq -r '.job_id')
 echo "Job created: $JOB_ID"
 
-# 2. Poll for status (no auth required)
+# 2. Poll for status
 while true; do
-  STATUS=$(curl -s "https://apis.viggle.ai/api/render/$JOB_ID")
+  STATUS=$(curl -s "https://apis.viggle.ai/api/render/$JOB_ID" -H "Authorization: Bearer YOUR_API_KEY")
   STATE=$(echo "$STATUS" | jq -r '.status')
   echo "Status: $STATE"
 
@@ -243,10 +243,10 @@ curl "https://apis.viggle.ai/api/render/job_abc123xyz/poll?last_chunk=-1&timeout
     Live render with progressive chunks
   </Card>
   <Card title="Get Job Status" icon="chart-column" href="/api-reference/render/status">
-    Check render progress (no auth)
+    Check render progress
   </Card>
   <Card title="Download Video" icon="download" href="/api-reference/render/download">
-    Download completed video (+ mask for transparent mode)
+    Download completed video
   </Card>
   <Card title="Live Streaming Guide" icon="radio" href="/guides/live-render">
     Stream fMP4 chunks with MSE or long-polling
