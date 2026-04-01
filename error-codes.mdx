@@ -15,6 +15,19 @@ All errors return JSON with a structured `detail` field containing an error code
 }
 ```
 
+Transient errors include a `retryable: true` field — your client should automatically retry these:
+
+```json
+{
+  "detail": {
+    "error_code": "CS-ORGS-001",
+    "message": "Failed to upload to storage",
+    "action": "Retry the job",
+    "retryable": true
+  }
+}
+```
+
 When contacting support, always include the `error_code` from the response. Email **support@viggle.ai** with the error code and your job ID for fastest resolution.
 
 ## Error response fields
@@ -24,6 +37,7 @@ When contacting support, always include the `error_code` from the response. Emai
 | `error_code` | Unique identifier (e.g. `CS-ORIV-001`). Always include this when contacting support. |
 | `message` | Human-readable description of what went wrong |
 | `action` | What you can do to fix it |
+| `retryable` | If `true`, the error is transient and the request can be retried |
 | `detail` | Additional context (not always present) |
 
 ## Error codes by category
@@ -63,27 +77,27 @@ When contacting support, always include the `error_code` from the response. Emai
 
 ### Job status (404 / 410)
 
-| Code | Message | Action |
-|------|---------|--------|
-| `CS-ORJC-001` | Job not found | Check the job ID is correct |
-| `CS-ORJC-003` | Result has expired | Submit a new job — results expire after 24 hours |
-| `CS-ORJC-005` | Job failed during processing | Retry the job. If persistent, contact support with the error code. |
+| Code | Message | Retry | Action |
+|------|---------|:-----:|--------|
+| `CS-ORJC-001` | Job not found | | Check the job ID is correct |
+| `CS-ORJC-003` | Result has expired | | Submit a new job — results expire after 24 hours |
+| `CS-ORJC-005` | Job failed during processing | Yes | Retry the job. If persistent, contact support. |
 
 ### Processing errors (500)
 
-| Code | Message | Action |
-|------|---------|--------|
-| `CS-ENEC-001` | Encoder could not access the video | Retry the job |
-| `CS-ENEC-004` | No humans detected in some frames | Ensure the person is visible throughout the video |
-| `CS-ENEC-006` | GPU out of memory during encoding | Try a lower resolution or shorter video |
-| `CS-RNRD-003` | GPU out of memory during rendering | Try a lower resolution video |
-| `CS-MGMR-001` | Some video chunks are missing | Retry the job |
+| Code | Message | Retry | Action |
+|------|---------|:-----:|--------|
+| `CS-ENEC-001` | Encoder could not access the video | Yes | Retry the job |
+| `CS-ENEC-004` | No humans detected in some frames | | Ensure the person is visible throughout the video |
+| `CS-ENEC-006` | GPU out of memory during encoding | Yes | Try a lower resolution or shorter video |
+| `CS-RNRD-003` | GPU out of memory during rendering | Yes | Try a lower resolution video |
+| `CS-MGMR-001` | Some video chunks are missing | Yes | Retry the job |
 
 ### Capacity (503)
 
-| Code | Message | Action |
-|------|---------|--------|
-| `CS-ORRS-001` | All workers are busy | Retry in a few seconds or use normal mode instead of fast mode |
+| Code | Message | Retry | Action |
+|------|---------|:-----:|--------|
+| `CS-ORRS-001` | All workers are busy | Yes | Retry in a few seconds or use normal mode instead of fast mode |
 
 ### Internal errors (500)
 
@@ -138,7 +152,7 @@ These errors indicate an issue on our infrastructure. **You do not need to chang
 
 <AccordionGroup>
   <Accordion title="Implement retry logic">
-    For transient errors (500, 503), use exponential backoff:
+    Check the `retryable` field in error responses to decide whether to retry:
 
     ```python
     import time, requests
@@ -146,9 +160,13 @@ These errors indicate an issue on our infrastructure. **You do not need to chang
     def api_request_with_retry(url, headers, max_retries=3):
         for attempt in range(max_retries):
             response = requests.get(url, headers=headers)
-            if response.status_code in (500, 503):
-                time.sleep(2 ** attempt)
-                continue
+            if response.status_code >= 400:
+                data = response.json()
+                detail = data.get("detail", {})
+                if isinstance(detail, dict) and detail.get("retryable"):
+                    time.sleep(2 ** attempt)  # exponential backoff
+                    continue
+                return response  # not retryable, return immediately
             return response
         raise Exception("Max retries exceeded")
     ```
