@@ -245,11 +245,7 @@ components:
           type: string
           format: uri
           nullable: true
-          description: CDN URL for mask video (transparent background mode only)
-        mask_download_url:
-          type: string
-          nullable: true
-          description: URL to download mask video (transparent background mode only)
+          description: CDN URL for mask video. Only present when background_mode=transparent and job is complete.
         chunks:
           type: array
           items:

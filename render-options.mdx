@@ -18,17 +18,21 @@ Pass optional form fields when creating a render job via `POST /api/render`. All
   |-------|-------------|
   | `original` | Keep the original video background (default) |
   | `solid` | Replace with solid color (use with `bg_color`) |
-  | `transparent` | Separate mask video for compositing |
+  | `transparent` | Character on black background + separate grayscale mask video for compositing |
 </ParamField>
 
 <ParamField body="bg_color" type="string" default="0,255,0">
   RGB string for solid background. Only used when `background_mode` is `solid`. Format: `"R,G,B"` (0-255, not hex).
 </ParamField>
 
+<ParamField body="resolution" type="string" default="SD">
+  Output resolution. `SD` for standard definition, `HD` for high definition.
+</ParamField>
+
 <ParamField body="fast" type="boolean" default="false">
   Enable fast mode for faster rendering.
 
-  <Warning>Fast mode requires available capacity. Returns `503` if unavailable -- retry with `fast=false` or wait.</Warning>
+  <Warning>Fast mode requires available capacity. Returns `503` if unavailable — retry with `fast=false` or wait.</Warning>
 </ParamField>
 
 ## Examples
@@ -40,7 +44,7 @@ Pass optional form fields when creating a render job via `POST /api/render`. All
     ```bash
     curl -X POST "https://apis.viggle.ai/api/render" \
       -H "Authorization: Bearer YOUR_API_KEY" \
-      -d "character_id=char_xxx" -d "scene_id=scene_xxx"
+      -F "character_id=char_xxx" -F "scene_id=scene_xxx"
     ```
   </Tab>
   <Tab title="Green Screen" icon="image">
@@ -49,9 +53,31 @@ Pass optional form fields when creating a render job via `POST /api/render`. All
     ```bash
     curl -X POST "https://apis.viggle.ai/api/render" \
       -H "Authorization: Bearer YOUR_API_KEY" \
-      -d "character_id=char_xxx" -d "scene_id=scene_xxx" \
-      -d "background_mode=solid" -d "bg_color=0,255,0"
+      -F "character_id=char_xxx" -F "scene_id=scene_xxx" \
+      -F "background_mode=solid" -F "bg_color=0,255,0"
     ```
+  </Tab>
+  <Tab title="Transparent" icon="scissors">
+    Character on black background + mask video for compositing.
+
+    ```bash
+    # 1. Submit render
+    curl -X POST "https://apis.viggle.ai/api/render" \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -F "character_id=char_xxx" -F "scene_id=scene_xxx" \
+      -F "background_mode=transparent"
+
+    # 2. Poll — response includes both cdn_url and mask_cdn_url
+    curl "https://apis.viggle.ai/api/render/JOB_ID/poll" \
+      -H "Authorization: Bearer YOUR_API_KEY"
+    # { "status": "complete", "cdn_url": "...", "mask_cdn_url": "..." }
+
+    # 3. Download both
+    curl -L -o character.mp4 "CDN_URL"
+    curl -L -o mask.mp4 "MASK_CDN_URL"
+    ```
+
+    See [Compositing Guide](/guides/compositing) for full workflow.
   </Tab>
   <Tab title="Fast" icon="zap">
     Priority rendering when capacity is available.
@@ -59,40 +85,67 @@ Pass optional form fields when creating a render job via `POST /api/render`. All
     ```bash
     curl -X POST "https://apis.viggle.ai/api/render" \
       -H "Authorization: Bearer YOUR_API_KEY" \
-      -d "character_id=char_xxx" -d "scene_id=scene_xxx" \
-      -d "fast=true"
+      -F "character_id=char_xxx" -F "scene_id=scene_xxx" \
+      -F "fast=true"
     ```
   </Tab>
-  <Tab title="Transparent" icon="scissors">
-    Generates main video + mask video for compositing.
+  <Tab title="On-Demand" icon="upload">
+    Upload video + character image directly (no preprocessing required).
 
     ```bash
     curl -X POST "https://apis.viggle.ai/api/render" \
       -H "Authorization: Bearer YOUR_API_KEY" \
-      -d "character_id=char_xxx" -d "scene_id=scene_xxx" \
-      -d "background_mode=transparent"
+      -F "ref_image=@character.png" \
+      -F "driving_video=@driving.mp4" \
+      -F "background_mode=original"
     ```
   </Tab>
 </Tabs>
 
 ## Background mode comparison
 
-| Mode | Use Case | Output |
-|------|----------|--------|
-| `original` | General use, keep scene context | Original background preserved |
-| `solid` | Green screen, compositing | Solid color background |
-| `transparent` | Professional compositing | Black bg video + separate mask video |
+| Mode | Output | `mask_cdn_url` | Use Case |
+|------|--------|:---------:|----------|
+| `original` | Character composited on original video background | No | General use |
+| `solid` | Character on solid color (e.g. green screen) | No | Chroma keying |
+| `transparent` | Character on black + grayscale mask video | **Yes** | Professional compositing (AE, Resolve, FFmpeg) |
+
+## Transparent mode details
+
+When `background_mode=transparent`:
+
+1. **Main video** (`cdn_url`): Character rendered on a black background
+2. **Mask video** (`mask_cdn_url`): Grayscale video where white = character, black = background
+
+Both URLs are included in the poll response when the job completes. Use them together in your video editor as a luma matte.
+
+```json
+{
+  "status": "complete",
+  "cdn_url": "https://assets.viggle.ai/.../output.mp4",
+  "mask_cdn_url": "https://assets.viggle.ai/.../output_mask.mp4",
+  "completed_chunks": 17,
+  "total_chunks": 17
+}
+```
+
+<Info>
+  For step-by-step compositing instructions (After Effects, DaVinci Resolve, FFmpeg), see the [Compositing Guide](/guides/compositing).
+</Info>
 
 ## Best practices
 
 <AccordionGroup>
   <Accordion title="Background selection">
-    Use **original** when you want scene context. Use **solid** or **transparent** when compositing in video editors.
+    - **`original`** — keep scene context, easiest to use
+    - **`solid`** — traditional green screen, works with any chroma key tool
+    - **`transparent`** — most flexible, gives you the mask for precise compositing
   </Accordion>
-  <Accordion title="Transparent mode and mask">
-    Generates two outputs: main video (character on black) and mask video (white = character). Use both in your editor. See [Compositing Guide](/guides/compositing).
+  <Accordion title="On-demand vs preprocessed">
+    - **On-demand** — upload `ref_image` + `driving_video` directly. Simplest but slower (encoding + rendering in one step).
+    - **Preprocessed** — preprocess `character_id` and `scene_id` separately, then combine. Faster rendering since encoding is done ahead of time.
   </Accordion>
-  <Accordion title="Performance optimization">
-    Enable **fast** mode for time-sensitive renders when capacity is available.
+  <Accordion title="Performance">
+    Enable **fast** mode for time-sensitive renders when capacity is available. Videos are automatically resampled to 25fps for consistent output.
   </Accordion>
 </AccordionGroup>
