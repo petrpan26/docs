@@ -4,17 +4,30 @@ description: "Credits and billing"
 ---
 
 <Columns cols={3}>
-  <Card title="Cost" icon="coins">
+  <Card title="Rendering" icon="coins">
     **1 credit/sec** of rendered video. 1 credit = $0.01 (100 credits per dollar).
   </Card>
-  <Card title="Free" icon="gift">
-    Character and scene creation are free. Failed renders are refunded.
+  <Card title="Preprocessing" icon="gift">
+    Credits are held during preprocessing and **refunded on your first render**. Scene: 1 credit/sec. Character: 1 credit.
   </Card>
   <Card title="Limits" icon="gauge">
     5 concurrent render jobs per org. Stored assets never expire.
   </Card>
 </Columns>
 
+## How credits work
+
+| Action | Credits | Notes |
+|--------|---------|-------|
+| **Scene preprocessing** | 1/sec (held) | Refunded when first render starts |
+| **Character preprocessing** | 1 (held) | Refunded when first render starts |
+| **Render** | 1/sec | First render of preprocessed assets is free |
+| **Failed render** | 0 | Fully refunded |
+
+<Info>
+  Preprocessing credits are **held** (not charged) until your first render. When you submit your first render using a preprocessed scene or character, the held credits are automatically refunded. This means preprocessing is effectively free as long as you render at least once.
+</Info>
+
 <Card title="Check your balance" icon="wallet" href="/api-reference/credits/balance">
-  `GET /api/credits/balance` -- see your current credit balance
+  `GET /api/credits/balance` — see your current credit balance
 </Card>
