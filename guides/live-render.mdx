@@ -150,7 +150,7 @@ Each chunk is a **fragmented MP4** (fMP4) file with `empty_moov` + `moof`/`mdat`
 
 ```javascript
 const video = document.getElementById("player");
-const mime = 'video/mp4; codecs="avc1.64001f"';
+const mime = 'video/mp4; codecs="avc1.4d0028"';
 
 async function streamWithMSE(jobId) {
   const headers = { Authorization: `Bearer ${API_KEY}` };
@@ -326,70 +326,22 @@ done
 
 ## fMP4 Chunk Format
 
-Each chunk is a self-contained **fragmented MP4** (ISO BMFF) produced with:
+Each chunk is a **fragmented MP4** (ISO BMFF) segment. Chunk 0 contains the initialization segment (`ftyp` + `moov`), subsequent chunks contain only media segments (`moof` + `mdat`).
 
-```bash
-ffmpeg -c:v copy -movflags +frag_keyframe+empty_moov+default_base_moof -f mp4
-```
-
-| Flag | Purpose |
-|------|---------|
-| `frag_keyframe` | New fragment at each keyframe — independently decodable |
-| `empty_moov` | Empty `moov` box at start (no sample tables) — required for MSE |
-| `default_base_moof` | `moof` position as base offset — required by MSE and DASH |
-
-### Box Layout
-
-```
-ftyp          File Type (isom)
-moov          Movie Box (empty — metadata only)
-├─ mvhd       Movie header (timescale, duration=0)
-├─ trak       Track (width, height, codec: H.264)
-└─ mvex       Movie extends (trex defaults)
-moof          Movie Fragment #1
-├─ mfhd       Sequence number
-└─ traf       Track fragment (tfhd, tfdt, trun)
-mdat          Media Data #1 (H.264 NAL units)
-moof + mdat   Fragment #2 ...
-```
-
-### Key Fields
-
-| Field | Box | Description |
-|-------|-----|-------------|
-| `timescale` | mvhd / mdhd | Ticks per second (typically 12800 or 15360) |
-| `sequence_number` | mfhd | Fragment index (1-based) |
-| `base_media_decode_time` | tfdt | Presentation timestamp in timescale units |
-| `sample_count` | trun | Number of video frames in this fragment |
-| `sample_flags` | trun | Sync sample flag for keyframes |
-
-### MSE Codec String
-
-Use this codec string for `addSourceBuffer()`:
-
-```
-'video/mp4; codecs="avc1.64001f"'
-```
-
-### Verification
-
-```bash
-# Inspect box structure (Bento4)
-mp4dump chunk_0.mp4
-
-# Check streams and format
-ffprobe -show_format -show_streams chunk_0.mp4
-```
+Key properties:
+- **Codec**: H.264 Main Profile, 25fps, no B-frames
+- **PTS == DTS**: No composition time offsets (smooth byte-concatenation)
+- **MSE codec string**: `'video/mp4; codecs="avc1.4d0028"'`
 
 <Info>
-  For the full specification including all box fields and concatenation details, see [fMP4 Format Specification](/guides/fmp4-format).
+  For the full specification including box layout, key fields, and byte-concatenation details, see [fMP4 Format Specification](/guides/fmp4-format).
 </Info>
 
 ## Poll vs Status: When to Use Which
 
 | Feature | Poll (`/poll`) | Status (`/`) |
 |---------|----------------|--------------|
-| **Auth required** | Yes | No |
+| **Auth required** | Yes | Yes |
 | **Blocking** | Yes (long-poll up to 60s) | No (returns immediately) |
 | **Returns chunks** | New chunks since `last_chunk` | All completed chunks |
 | **Best for** | Real-time streaming, progressive playback | Background polling, simple integration |

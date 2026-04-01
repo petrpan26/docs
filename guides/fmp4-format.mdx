@@ -3,121 +3,149 @@ title: 'fMP4 Format Specification'
 description: 'Technical details of the fragmented MP4 chunks produced by the Viggle render pipeline'
 ---
 
-Each render chunk is delivered as a **fragmented MP4** (fMP4) file. This format enables progressive download, Media Source Extensions (MSE) playback, and DASH/HLS compatibility without re-encoding.
+Each render chunk is delivered as a **fragmented MP4** (fMP4) segment. This format enables progressive download, Media Source Extensions (MSE) playback, and byte-concatenation into a complete video.
 
-## FFmpeg Conversion Flags
+## Segment Structure
 
-Chunks are produced with the following FFmpeg flags:
+Chunks follow the W3C ISO BMFF Byte Stream Format for streaming compatibility:
 
-```bash
-ffmpeg -y -i input.mp4 \
-  -c:v copy -c:a copy \
-  -movflags +frag_keyframe+empty_moov+default_base_moof \
-  -f mp4 output.mp4
+```
+Chunk 0 (init + first segment):
+  [ftyp][moov][moof₁][mdat₁]
+
+Chunk 1+ (media segments only):
+  [moof₂][mdat₂]
+  [moof₃][mdat₃]
+  ...
 ```
 
-| Flag | Purpose |
-|------|---------|
-| `-c:v copy` | Stream-copy video (no re-encoding) |
-| `-c:a copy` | Stream-copy audio (no re-encoding) |
-| `frag_keyframe` | Start a new fragment at each keyframe for independent decodability |
-| `empty_moov` | Write an empty `moov` box at the start (no sample tables) — required for MSE |
-| `default_base_moof` | Use `moof` position as base offset for sample positions — required by MSE and DASH |
+- **Chunk 0** contains the initialization segment (`ftyp` + `moov`) plus the first media segment
+- **Chunk 1+** contain only media segments (`moof` + `mdat`) — no redundant init
+- **No `mfra`** (Movie Fragment Random Access) — allows seamless streaming append
 
-## Box Structure
+## Codec
 
-Each fMP4 chunk file contains the following ISO BMFF box layout:
+| Property | Value |
+|----------|-------|
+| Video codec | H.264 (AVC) Main Profile |
+| Encoder | Hardware-accelerated (h264_nvenc) |
+| Frame rate | 25 fps (constant) |
+| Keyframe | IDR at the start of each chunk |
+| B-frames | None (`bf=0`) |
+| PTS/DTS | Identical (no composition time offsets) |
+| Timescale | 12800 ticks/second (512 ticks per frame at 25fps) |
+
+<Info>
+  The codec string for MSE `addSourceBuffer()` is typically:
+  `'video/mp4; codecs="avc1.4d0028"'` (Main profile, level 4.0)
+</Info>
+
+## Box Layout
+
+### Chunk 0 (Init + First Segment)
 
 ```
 ftyp                      File Type Box
 ├─ major_brand: isom
-├─ minor_version: 512
 └─ compatible: isom, iso2, avc1, mp41
 
 moov                      Movie Box (empty — no sample tables)
 ├─ mvhd                   Movie header (timescale, duration=0)
 ├─ trak                   Track Box
-│  ├─ tkhd                Track header (width, height, track_id)
+│  ├─ tkhd                Track header (width, height, track_id=1)
 │  └─ mdia                Media Box
-│     ├─ mdhd             Media header (timescale)
+│     ├─ mdhd             Media header (timescale=12800)
 │     ├─ hdlr             Handler (vide)
 │     └─ minf → stbl      Sample table (empty: stts, stsc, stsz, stco)
 └─ mvex                   Movie Extends Box
-   └─ trex                Track extends defaults (sample_size=0, etc.)
+   └─ trex                Track extends defaults
 
-moof                      Movie Fragment #1
-├─ mfhd                   Fragment header (sequence_number=1)
+moof                      Movie Fragment (sequence_number=1)
+├─ mfhd                   Fragment header
 └─ traf                   Track Fragment
-   ├─ tfhd                Track fragment header (track_id, flags)
-   ├─ tfdt                Track fragment decode time (base_media_decode_time)
-   └─ trun                Track run (sample_count, sizes, durations, flags)
-mdat                      Media Data #1 (H.264 NAL units)
+   ├─ tfhd                Track fragment header (default_base_is_moof=true)
+   ├─ tfdt                base_media_decode_time=0
+   └─ trun                Track run (25 samples, no composition offsets)
+mdat                      Media Data (H.264 NAL units for 25 frames)
+```
 
-moof                      Movie Fragment #2
-├─ ...
-mdat                      Media Data #2
+### Chunk 1+ (Media Segments)
 
-...                       (one moof+mdat pair per keyframe)
+```
+moof                      Movie Fragment (sequence_number=N+1)
+├─ mfhd                   Fragment header
+└─ traf                   Track Fragment
+   ├─ tfhd                default_base_is_moof=true
+   ├─ tfdt                base_media_decode_time=N*12800 (N seconds)
+   └─ trun                Track run (25 samples)
+mdat                      Media Data
 ```
 
 ## Key Fields
 
 | Field | Location | Description |
 |-------|----------|-------------|
-| `major_brand` | ftyp | Always `isom` |
-| `timescale` | moov → mvhd / mdhd | Ticks per second (typically 12800 or 15360) |
-| `track_id` | trak → tkhd | Always `1` for single-track video |
-| `sequence_number` | moof → mfhd | Fragment index (1-based, incrementing) |
-| `base_media_decode_time` | traf → tfdt | Presentation timestamp in timescale units |
-| `sample_count` | traf → trun | Number of video frames in this fragment |
-| `sample_duration` | trun entries | Duration of each frame in timescale units |
-| `sample_size` | trun entries | Byte size of each frame's NAL data |
-| `sample_flags` | trun entries | Sync sample flag indicates keyframes |
+| `sequence_number` | moof → mfhd | Fragment index (1-based, monotonically increasing) |
+| `base_media_decode_time` | traf → tfdt | Decode timestamp in timescale units. Chunk N starts at `N * 25 * 512 = N * 12800` |
+| `default_base_is_moof` | traf → tfhd flags | Data offsets relative to `moof` position (required for byte-concatenation) |
+| `sample_count` | traf → trun | Number of frames (typically 25 per chunk, last chunk may have fewer) |
+| `sample_duration` | trun entries | 512 ticks per frame (= 12800 / 25fps) |
+| `sample_composition_time_offset` | trun entries | **Always 0** — PTS equals DTS for every frame |
 
-## MSE Chunk Concatenation
+## Byte-Concatenation
 
-For browser playback via [Media Source Extensions](/guides/live-render#progressive-playback-with-fmp4--mse), chunks can be appended sequentially:
+Chunks are designed for direct byte-concatenation into a playable video:
 
 ```
-Chunk 0:  [ftyp][moov][moof₁][mdat₁]...
-Chunk 1:  [ftyp][moov][moof₁][mdat₁]...
-Chunk 2:  [ftyp][moov][moof₁][mdat₁]...
+cat chunk_0.mp4 chunk_1.mp4 chunk_2.mp4 ... > complete.mp4
 ```
 
-Each chunk is a self-contained fMP4 with its own initialization segment (`ftyp` + `moov`). MSE's `SourceBuffer` handles the re-initialization automatically when you call `appendBuffer()` for each chunk.
+This works because:
+1. Only chunk 0 has `ftyp` + `moov` (initialization)
+2. `default_base_is_moof` makes data offsets relative (not absolute file positions)
+3. `sequence_number` increments across chunks (1, 2, 3...)
+4. `base_media_decode_time` is continuous (0, 12800, 25600...)
+5. No composition time offsets — PTS == DTS
 
-<Info>
-  The codec string for `addSourceBuffer()` is:
-  `'video/mp4; codecs="avc1.64001f"'` (High profile, level 3.1)
-</Info>
+The concatenated result is a valid fMP4 that can be remuxed to standard MP4:
+
+```bash
+ffmpeg -y -i concatenated.mp4 -c copy -movflags +faststart output.mp4
+```
+
+## MSE Playback
+
+For browser playback via [Media Source Extensions](/guides/live-render#progressive-playback-with-fmp4--mse):
+
+```javascript
+const mimeType = 'video/mp4; codecs="avc1.4d0028"';
+const sourceBuffer = mediaSource.addSourceBuffer(mimeType);
+
+// Append each chunk as it arrives from the poll endpoint
+for (const chunk of newChunks) {
+  const data = await fetch(chunk.cdn_url).then(r => r.arrayBuffer());
+  sourceBuffer.appendBuffer(data);
+  await new Promise(r => sourceBuffer.addEventListener('updateend', r, { once: true }));
+}
+```
+
+<Warning>
+  Append chunks **in order** (chunk 0 first, then 1, 2, ...). Chunk 0 contains the initialization segment that MSE needs before it can decode any media segments.
+</Warning>
 
 ## Final Merged Video
 
-The download endpoint (`GET /api/render/{job_id}/download`) returns a **non-fragmented** MP4 with `+faststart` (moov atom at the beginning). This is the recommended format for storage and distribution:
+The download endpoint (`GET /api/render/{job_id}/download`) returns a **standard MP4** (not fMP4) with `+faststart`. This is the recommended format for storage and distribution.
+
+## Verification
 
 ```bash
-# Merge uses different flags — standard MP4, not fMP4
-ffmpeg -y -f concat -safe 0 -i chunks.txt -c copy -movflags +faststart output.mp4
-```
+# Show codec and format
+ffprobe -v quiet -show_streams -show_format chunk_0.mp4
 
-## Verification Commands
+# Check PTS == DTS (no composition offsets)
+ffprobe -show_packets -select_streams v chunk_0.mp4 | head -20
 
-Inspect the box structure of a chunk file:
-
-```bash
-# Show all boxes (requires ffprobe)
-ffprobe -show_format -show_streams chunk_0.mp4
-
-# Show box layout (requires mp4dump from Bento4)
+# Inspect box layout (requires Bento4)
 mp4dump chunk_0.mp4
-
-# Verify fragment structure
-mp4info --show-layout chunk_0.mp4
-
-# Quick check — should show "isom" brand and "empty_moov" in format
-ffprobe -v quiet -show_format chunk_0.mp4 | grep -i frag
 ```
-
-<Tip>
-  Use [Bento4](https://www.bento4.com/) tools (`mp4dump`, `mp4info`, `mp4fragment`) for detailed ISO BMFF inspection. FFprobe provides basic metadata but doesn't show individual box layouts.
-</Tip>
