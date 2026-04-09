@@ -5,13 +5,14 @@ openapi: 'POST /api/render'
 description: 'Start a video render job'
 ---
 
-Start a video render job using `multipart/form-data`. Both character and scene must have status `ready`.
+Start a video render job using `multipart/form-data`.
 
 <Note>
   **Two workflows available:**
 
-  - **On-Demand:** Upload `ref_image` and `driving_video` directly — no preprocessing, no stored assets. Costs 1 credit/second of video only.
-  - **Reusable Assets:** Pre-create characters and scenes (both free — refunded when first render starts) for reuse across renders. Each render costs 1 credit/second.
+  - **On-Demand:** Upload `ref_image` and `driving_video` directly -- no preprocessing, no stored assets. Costs 1 credit/second of video.
+  - **Reusable Assets:** Pre-create characters and scenes (both free) for reuse across renders. Each render costs 1 credit/second.
+  - **Fast Mode:** Set `fast=true` for 2x rendering speed at 2x credit cost. Requires a `driving_video` upload or a `scene_id`.
 </Note>
 
 ## Error Handling
@@ -158,7 +159,4 @@ curl -X POST "https://apis.viggle.ai/api/render" \
 
 ## Next Steps
 
-After creating a render job, you can either:
-
-- **Live Render**: Use [Poll for Chunks](/api-reference/render/poll) to receive [fMP4](/guides/fmp4-format) video chunks progressively. See the [Live Streaming guide](/guides/live-render) for MSE browser playback examples.
-- **Check Status**: Use [Get Job Status](/api-reference/render/status) (no auth required) to check progress, then [Download Video](/api-reference/render/download) when complete
+After creating a render job, poll [Get Job Status](/api-reference/render/status) every 3-5 seconds (no auth required). When `status` is `complete`, use the `cdn_url` field to download the final video.

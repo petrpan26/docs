@@ -53,21 +53,18 @@ components:
     CharacterCreated:
       type: object
       properties:
-        id:
+        character_id:
           type: string
           example: 550e8400-e29b-41d4-a716-446655440000
         job_id:
           type: string
           example: char_550e8400e29b
-        name:
-          type: string
-          example: My Character
         status:
           type: string
           example: pending
-        credits_reserved:
-          type: number
-          example: 1.0
+        enqueued_at:
+          type: string
+          format: date-time
 
     CharacterListItem:
       type: object
@@ -120,10 +117,6 @@ components:
           type: integer
           nullable: true
           example: 1080
-        total_chunks:
-          type: integer
-          nullable: true
-          example: 8
         job_id:
           type: string
           nullable: true
@@ -147,24 +140,18 @@ components:
     SceneCreated:
       type: object
       properties:
-        id:
+        scene_id:
           type: string
           example: 660e8400-e29b-41d4-a716-446655440000
         job_id:
           type: string
           example: scene_660e8400e29b
-        name:
-          type: string
-          example: Dance Sequence
         status:
           type: string
           example: pending
-        credits_reserved:
-          type: number
-          example: 6.67
-        duration_seconds:
-          type: number
-          example: 6.67
+        enqueued_at:
+          type: string
+          format: date-time
 
     SceneListItem:
       type: object
@@ -221,51 +208,37 @@ components:
         status:
           type: string
           enum: [queued, processing, rendering, merging, complete, failed]
-        progress:
-          type: object
-          properties:
-            completed_chunks:
-              type: integer
-            total_chunks:
-              type: integer
-            percent:
-              type: number
-              example: 60.0
+        mode:
+          type: string
+          description: The render mode used (e.g. full_pipeline, preprocessed, fast)
+          nullable: true
+        checkpoint:
+          type: string
+          description: Current processing stage within the pipeline
+          nullable: true
+        progress_pct:
+          type: number
+          description: Estimated progress percentage (0-100)
+          nullable: true
+          example: 60.0
         cdn_url:
           type: string
           format: uri
           nullable: true
-          description: CDN URL to download complete video (when status is complete)
-        download_url:
+          description: CDN URL to download the final video (available when status is complete)
+        error_code:
           type: string
-          format: uri
           nullable: true
-          description: URL to download the completed video
-        mask_cdn_url:
+          description: Structured error code (e.g. CS-UORC01-002) when status is failed
+        error_message:
           type: string
-          format: uri
           nullable: true
-          description: CDN URL for mask video. Only present when background_mode=transparent and job is complete.
+          description: Human-readable error description when status is failed
         chunks:
           type: array
           items:
             type: object
-            properties:
-              chunk_id:
-                type: integer
-              cdn_url:
-                type: string
-                format: uri
-          description: Array of individual chunks with their CDN URLs
-        error:
-          type: string
-          nullable: true
-          description: Error message if job failed
-        error_code:
-          type: string
-          nullable: true
-          description: Machine-readable error code (e.g. CS-RNRD-003). Include this when contacting support@viggle.ai.
-          example: CS-ORJC-005
+          description: Always an empty array in v2. Retained for backward compatibility.
         created_at:
           type: string
           format: date-time
@@ -286,14 +259,13 @@ components:
         status:
           type: string
           example: queued
-        poll_url:
+        mode:
           type: string
-          description: URL to poll for live render chunks
-          example: /api/render/job_abc123xyz/poll
-        status_url:
+          description: The render mode (e.g. full_pipeline, preprocessed, fast)
+          example: full_pipeline
+        enqueued_at:
           type: string
-          description: URL to check job status
-          example: /api/render/job_abc123xyz
+          format: date-time
 
     RenderDeleted:
       type: object
@@ -305,67 +277,11 @@ components:
           type: string
           example: job_abc123xyz
 
-    PollResponse:
-      type: object
-      properties:
-        status:
-          type: string
-          enum: [queued, processing, rendering, merging, complete, failed]
-        new_chunks:
-          type: array
-          items:
-            type: object
-            properties:
-              chunk_id:
-                type: integer
-              cdn_url:
-                type: string
-                format: uri
-        completed_chunks:
-          type: integer
-          description: Number of completed chunks
-        total_chunks:
-          type: integer
-          description: Total number of chunks
-        cdn_url:
-          type: string
-          format: uri
-          nullable: true
-          description: CDN URL to complete video (when status is complete)
-        mask_cdn_url:
-          type: string
-          format: uri
-          nullable: true
-          description: CDN URL for mask video (transparent background mode only)
-        error:
-          type: string
-          nullable: true
-          description: Error message if job failed
-        error_code:
-          type: string
-          nullable: true
-          description: Machine-readable error code. Include when contacting support@viggle.ai.
-          example: CS-ORJC-005
-
     Error:
       type: object
-      description: Structured error response. Include the error_code when contacting support@viggle.ai.
       properties:
         detail:
-          type: object
-          properties:
-            error_code:
-              type: string
-              description: Unique error code for debugging
-              example: CS-ORIV-001
-            message:
-              type: string
-              description: Human-readable error description
-              example: Reference image is required
-            action:
-              type: string
-              description: Suggested fix
-              example: Upload a ref_image (PNG/JPG)
+          type: string
           example: "API key required. Use Authorization: Bearer sk-xxx"
 
     Deleted:
@@ -415,7 +331,7 @@ paths:
   # ──────────────────────────────────────────────
   # Characters
   # ──────────────────────────────────────────────
-  /api/characters/preprocess:
+  /api/characters:
     post:
       summary: Create Character
       description: Upload a reference image to create a reusable character. Processing runs in background. Costs 1 credit. Poll GET /api/characters/{id} until status is ready.
@@ -444,7 +360,7 @@ paths:
                   description: Reference image file (PNG, JPG, WebP)
       responses:
         '200':
-          description: Character preprocessing started
+          description: Character creation started
           content:
             application/json:
               schema:
@@ -468,7 +384,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /api/characters:
     get:
       summary: List Characters
       description: List all characters for the authenticated user, ordered by most recent first.
@@ -496,7 +411,7 @@ paths:
   /api/characters/{character_id}:
     get:
       summary: Get Character
-      description: Get full details of a specific character including preprocessing status.
+      description: Get full details of a specific character including processing status.
       operationId: getCharacter
       tags:
         - Characters
@@ -567,7 +482,7 @@ paths:
   # ──────────────────────────────────────────────
   # Scenes
   # ──────────────────────────────────────────────
-  /api/scenes/preprocess:
+  /api/scenes:
     post:
       summary: Create Scene
       description: Upload a driving video to create a reusable scene. Extracts motion data for character animation. Scene creation is free. Credits are consumed at render time. Poll GET /api/scenes/{id} until status is ready.
@@ -594,9 +509,14 @@ paths:
                   type: string
                   format: binary
                   description: Driving video file (MP4, MOV, WebM)
+                background_mode:
+                  type: string
+                  enum: [original, solid, transparent]
+                  default: original
+                  description: Background handling mode for the scene
       responses:
         '200':
-          description: Scene preprocessing started
+          description: Scene creation started
           content:
             application/json:
               schema:
@@ -615,6 +535,30 @@ paths:
                 $ref: '#/components/schemas/Error'
         '402':
           description: Insufficient credits
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    get:
+      summary: List Scenes
+      description: List all scenes for the authenticated user, ordered by most recent first.
+      operationId: listScenes
+      tags:
+        - Scenes
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of scenes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SceneListItem'
+        '401':
+          description: Unauthorized
           content:
             application/json:
               schema:
@@ -666,35 +610,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /api/scenes:
-    get:
-      summary: List Scenes
-      description: List all scenes for the authenticated user, ordered by most recent first.
-      operationId: listScenes
-      tags:
-        - Scenes
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: List of scenes
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/SceneListItem'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
   /api/scenes/{scene_id}:
     get:
       summary: Get Scene
-      description: Get full details of a specific scene including video metadata and preprocessing status.
+      description: Get full details of a specific scene including video metadata and processing status.
       operationId: getScene
       tags:
         - Scenes
@@ -768,7 +687,7 @@ paths:
   /api/render:
     post:
       summary: Create Render Job
-      description: Start a video render job. Accepts multipart/form-data with character/scene IDs and render options as form fields. Both character and scene must have status ready.
+      description: Start a video render job. Accepts multipart/form-data with file uploads and render options as form fields.
       operationId: createRenderJob
       tags:
         - Render
@@ -780,16 +699,22 @@ paths:
           multipart/form-data:
             schema:
               type: object
-              required:
-                - scene_id
               properties:
+                ref_image:
+                  type: string
+                  format: binary
+                  description: Character reference image file (PNG, JPG). Required for on-demand renders.
+                driving_video:
+                  type: string
+                  format: binary
+                  description: Driving video file (MP4). Required for on-demand renders and fast mode.
                 character_id:
                   type: string
-                  description: ID of a ready character (required for single-character render)
+                  description: ID of a ready character (for preprocessed renders)
                   example: char_550e8400e29b41d4
                 scene_id:
                   type: string
-                  description: ID of a ready scene
+                  description: ID of a ready scene (for preprocessed renders)
                   example: scene_660e8400e29b41d4
                 character_mapping:
                   type: string
@@ -797,9 +722,9 @@ paths:
                   example: '{"person_a1b2c3d4": "char_alice", "person_e5f6g7h8": "char_bob"}'
                 model:
                   type: string
-                  enum: [V4_Preview]
-                  default: V4_Preview
-                  description: Rendering model. Currently only V4_Preview is available.
+                  enum: [V4_BaseSG]
+                  default: V4_BaseSG
+                  description: Rendering model.
                 background_mode:
                   type: string
                   enum: [original, solid, transparent]
@@ -812,15 +737,7 @@ paths:
                 fast:
                   type: boolean
                   default: false
-                  description: Enable fast mode for faster rendering
-                ref_image:
-                  type: string
-                  format: binary
-                  description: Character image file for on-demand render (PNG, JPG)
-                driving_video:
-                  type: string
-                  format: binary
-                  description: Driving video for on-demand render (MP4)
+                  description: Enable fast mode for 2x rendering speed. Costs 2x credits. Requires a driving_video upload or a scene_id.
       responses:
         '200':
           description: Render job created
@@ -849,13 +766,12 @@ paths:
 
   /api/render/{job_id}:
     get:
-      summary: Get Job Status (Batch Render)
-      description: Check job status. Returns immediately. Poll every 5 seconds until complete or failed.
+      summary: Get Job Status
+      description: Check render job status and progress. Returns immediately. Poll every 3-5 seconds until status is complete or failed. Use the cdn_url field to download the final video.
       operationId: getRenderJobStatus
       tags:
         - Render
-      security:
-        - bearerAuth: []
+      security: []
       parameters:
         - name: job_id
           in: path
@@ -883,11 +799,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /api/render/{job_id}/poll:
-    get:
-      summary: Poll for Chunks (Live Render)
-      description: Long-poll for new video chunks. Blocks until chunks are ready, job completes, or timeout. Use for real-time progressive playback.
-      operationId: pollRenderChunks
+    delete:
+      summary: Cancel Job
+      description: Cancel a running job or delete a completed one. Releases reserved resources and refunds credits for incomplete jobs.
+      operationId: cancelRenderJob
       tags:
         - Render
       security:
@@ -899,113 +814,13 @@ paths:
           schema:
             type: string
           example: job_abc123xyz
-        - name: last_chunk
-          in: query
-          schema:
-            type: integer
-            default: -1
-          description: Return chunks after this chunk ID. Use -1 for first poll.
-        - name: timeout
-          in: query
-          schema:
-            type: integer
-            default: 30
-            maximum: 60
-          description: Max seconds to wait
       responses:
         '200':
-          description: Poll response
+          description: Job cancelled
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PollResponse'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /api/render/{job_id}/chunks/{chunk_id}.mp4:
-    get:
-      summary: Download Chunk
-      description: Download an individual rendered chunk as an MP4 file. Authentication required.
-      operationId: downloadRenderChunk
-      tags:
-        - Render
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: job_id
-          in: path
-          required: true
-          schema:
-            type: string
-          example: job_abc123xyz
-        - name: chunk_id
-          in: path
-          required: true
-          schema:
-            type: integer
-          example: 0
-      responses:
-        '200':
-          description: Chunk MP4 file
-          content:
-            video/mp4:
-              schema:
-                type: string
-                format: binary
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '404':
-          description: Chunk not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /api/render/{job_id}/download:
-    get:
-      summary: Download Video
-      description: Download the completed video. Only available when job status is complete. Returns a 302 redirect to the CDN URL.
-      operationId: downloadRenderVideo
-      tags:
-        - Render
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: job_id
-          in: path
-          required: true
-          schema:
-            type: string
-          example: job_abc123xyz
-      responses:
-        '302':
-          description: Redirect to CDN URL
-          headers:
-            Location:
-              schema:
-                type: string
-                format: uri
-              description: CDN URL for the video file
-        '202':
-          description: Video is still being merged. Retry shortly.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '400':
-          description: Job not complete yet
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/RenderDeleted'
         '401':
           description: Unauthorized
           content:
@@ -1018,10 +833,3 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        '410':
-          description: Result expired — download is no longer available
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-

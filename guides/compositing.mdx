@@ -33,21 +33,6 @@ graph LR
     print(f"Job ID: {job['job_id']}")
     ```
 
-    ```javascript JavaScript
-    const API_KEY = "YOUR_API_KEY", BASE = "https://apis.viggle.ai";
-    const headers = { Authorization: `Bearer ${API_KEY}` };
-
-    const form = new URLSearchParams();
-    form.append("character_id", "char_xxx");
-    form.append("scene_id", "scene_xxx");
-    form.append("background_mode", "transparent");
-
-    const job = await fetch(`${BASE}/api/render`, {
-      method: "POST", headers, body: form
-    }).then(r => r.json());
-    console.log(`Job ID: ${job.job_id}`);
-    ```
-
     ```bash cURL
     curl -X POST "https://apis.viggle.ai/api/render" \
       -H "Authorization: Bearer YOUR_API_KEY" \
@@ -58,98 +43,35 @@ graph LR
     </CodeGroup>
   </Step>
 
-  <Step title="Poll for completion" icon="clock">
-    Poll the status endpoint until complete. The response includes both `cdn_url` and `mask_cdn_url`.
+  <Step title="Wait and download" icon="clock">
+    Poll until complete, then download the video and mask from the CDN URLs in the status response.
 
-    <CodeGroup>
-
-    ```python Python
+    ```python
     while True:
-        status = requests.get(
-            f"{BASE}/api/render/{job['job_id']}/poll",
-            headers=headers
-        ).json()
+        status = requests.get(f"{BASE}/api/render/{job['job_id']}").json()
         if status["status"] == "complete":
             print(f"Video: {status['cdn_url']}")
-            print(f"Mask:  {status['mask_cdn_url']}")
             break
-        elif status["status"] == "failed": raise Exception(status.get("error"))
-        time.sleep(5)
+        elif status["status"] == "failed": raise Exception(status.get("error_message"))
+        time.sleep(3)
+
+    # Download main video
+    video = requests.get(status["cdn_url"])
+    open("character.mp4", "wb").write(video.content)
     ```
-
-    ```javascript JavaScript
-    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-    while (true) {
-      const status = await fetch(
-        `${BASE}/api/render/${job.job_id}/poll`,
-        { headers }
-      ).then(r => r.json());
-      if (status.status === "complete") {
-        console.log(`Video: ${status.cdn_url}`);
-        console.log(`Mask:  ${status.mask_cdn_url}`);
-        break;
-      }
-      if (status.status === "failed") throw new Error(status.error);
-      await sleep(5000);
-    }
-    ```
-
-    ```bash cURL
-    curl -s "https://apis.viggle.ai/api/render/JOB_ID/poll" \
-      -H "Authorization: Bearer YOUR_API_KEY"
-    # Response includes: "cdn_url" and "mask_cdn_url"
-    ```
-
-    </CodeGroup>
-  </Step>
-
-  <Step title="Download both files" icon="download">
-    Use the CDN URLs from the poll response to download the video and mask.
-
-    <CodeGroup>
-
-    ```python Python
-    import urllib.request
-    for url, filename in [
-        (status["cdn_url"], "character.mp4"),
-        (status["mask_cdn_url"], "character_mask.mp4"),
-    ]:
-        urllib.request.urlretrieve(url, filename)
-        print(f"Saved {filename}")
-    ```
-
-    ```javascript JavaScript
-    const fs = require("fs");
-    for (const [url, filename] of [
-      [status.cdn_url, "character.mp4"],
-      [status.mask_cdn_url, "character_mask.mp4"],
-    ]) {
-      const resp = await fetch(url);
-      fs.writeFileSync(filename, Buffer.from(await resp.arrayBuffer()));
-      console.log(`Saved ${filename}`);
-    }
-    ```
-
-    ```bash cURL
-    # Use cdn_url and mask_cdn_url from the poll response
-    curl -L -o character.mp4 "CDN_URL_FROM_POLL"
-    curl -L -o character_mask.mp4 "MASK_CDN_URL_FROM_POLL"
-    ```
-
-    </CodeGroup>
   </Step>
 
   <Step title="Composite in your editor" icon="film">
     <Tabs>
       <Tab title="After Effects">
-        1. Import `character.mp4` and `character_mask.mp4`
+        1. Import `character.mp4` and the mask video
         2. Place `character.mp4` above your background layer
-        3. Add `character_mask.mp4` as a **Track Matte** (Luma Matte)
+        3. Add the mask as a **Track Matte** (Luma Matte)
         4. Character composites over your custom background
       </Tab>
       <Tab title="DaVinci Resolve">
         1. Place background on V1, `character.mp4` on V2
-        2. Add `character_mask.mp4` in Fusion as alpha input
+        2. Add the mask video in Fusion as alpha input
         3. Use **MatteControl** node to apply the mask
       </Tab>
       <Tab title="FFmpeg">
@@ -165,103 +87,28 @@ graph LR
 
 ## Complete script
 
-<Accordion title="Full end-to-end script">
-  <CodeGroup>
-
-  ```python Python
-  import requests, time, urllib.request
+<Accordion title="Full Python script">
+  ```python
+  import requests, time
 
   API_KEY, BASE = "YOUR_API_KEY", "https://apis.viggle.ai"
   headers = {"Authorization": f"Bearer {API_KEY}"}
 
-  # 1. Start transparent render
   job = requests.post(f"{BASE}/api/render", headers=headers, data={
       "character_id": "char_xxx", "scene_id": "scene_xxx",
       "background_mode": "transparent",
   }).json()
 
-  # 2. Poll until complete
   while True:
-      status = requests.get(f"{BASE}/api/render/{job['job_id']}/poll", headers=headers).json()
+      status = requests.get(f"{BASE}/api/render/{job['job_id']}").json()
       if status["status"] == "complete": break
-      elif status["status"] == "failed": raise Exception(status.get("error"))
-      time.sleep(5)
+      elif status["status"] == "failed": raise Exception(status.get("error_message"))
+      time.sleep(3)
 
-  # 3. Download video and mask via CDN URLs
-  for url, filename in [
-      (status["cdn_url"], "character.mp4"),
-      (status["mask_cdn_url"], "character_mask.mp4"),
-  ]:
-      urllib.request.urlretrieve(url, filename)
-      print(f"Saved {filename}")
+  video = requests.get(status["cdn_url"])
+  open("character.mp4", "wb").write(video.content)
+  print(f"Saved character.mp4")
   ```
-
-  ```javascript JavaScript
-  const fs = require("fs");
-
-  const API_KEY = "YOUR_API_KEY", BASE = "https://apis.viggle.ai";
-  const headers = { Authorization: `Bearer ${API_KEY}` };
-  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-
-  // 1. Start transparent render
-  const form = new URLSearchParams();
-  form.append("character_id", "char_xxx");
-  form.append("scene_id", "scene_xxx");
-  form.append("background_mode", "transparent");
-
-  const job = await fetch(`${BASE}/api/render`, {
-    method: "POST", headers, body: form
-  }).then(r => r.json());
-
-  // 2. Poll until complete
-  let status;
-  while (true) {
-    status = await fetch(`${BASE}/api/render/${job.job_id}/poll`, { headers }).then(r => r.json());
-    if (status.status === "complete") break;
-    if (status.status === "failed") throw new Error(status.error);
-    await sleep(5000);
-  }
-
-  // 3. Download video and mask via CDN URLs
-  for (const [url, filename] of [
-    [status.cdn_url, "character.mp4"],
-    [status.mask_cdn_url, "character_mask.mp4"],
-  ]) {
-    const resp = await fetch(url);
-    fs.writeFileSync(filename, Buffer.from(await resp.arrayBuffer()));
-    console.log(`Saved ${filename}`);
-  }
-  ```
-
-  ```bash cURL
-  #!/bin/bash
-  # Full compositing workflow (requires jq)
-  API_KEY="YOUR_API_KEY"
-  BASE="https://apis.viggle.ai"
-
-  # 1. Start transparent render
-  JOB_ID=$(curl -s -X POST "$BASE/api/render" \
-    -H "Authorization: Bearer $API_KEY" \
-    -d "character_id=char_xxx" -d "scene_id=scene_xxx" \
-    -d "background_mode=transparent" | jq -r '.job_id')
-  echo "Job: $JOB_ID"
-
-  # 2. Poll until complete
-  while true; do
-    RESULT=$(curl -s "$BASE/api/render/$JOB_ID/poll" -H "Authorization: Bearer $API_KEY")
-    STATUS=$(echo "$RESULT" | jq -r '.status')
-    [ "$STATUS" = "complete" ] && break
-    [ "$STATUS" = "failed" ] && echo "Failed!" && exit 1
-    sleep 5
-  done
-
-  # 3. Download video and mask via CDN URLs
-  curl -sL -o character.mp4 "$(echo "$RESULT" | jq -r '.cdn_url')"
-  curl -sL -o character_mask.mp4 "$(echo "$RESULT" | jq -r '.mask_cdn_url')"
-  echo "Saved character.mp4 and character_mask.mp4"
-  ```
-
-  </CodeGroup>
 </Accordion>
 
 ## Tips

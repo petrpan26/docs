@@ -51,16 +51,13 @@
       "pages": [
         "guides/on-demand",
         "guides/quickstart",
-        "guides/import-templates",
-        "guides/live-render"
+        "guides/import-templates"
       ]
     },
     {
       "group": "Advanced",
       "pages": [
-        "guides/batch-processing",
-        "guides/compositing",
-        "guides/fmp4-format"
+        "guides/compositing"
       ]
     },
     {
@@ -88,9 +85,8 @@
         "api-reference/render/overview",
         "api-reference/render/create",
         "api-reference/render/multi-character",
-        "api-reference/render/poll",
         "api-reference/render/status",
-        "api-reference/render/download"
+        "api-reference/render/cancel"
       ]
     },
     {
@@ -120,6 +116,31 @@
     {
       "source": "/errors",
       "destination": "/error-codes",
+      "permanent": true
+    },
+    {
+      "source": "/guides/live-render",
+      "destination": "/guides/on-demand",
+      "permanent": true
+    },
+    {
+      "source": "/guides/fmp4-format",
+      "destination": "/guides/on-demand",
+      "permanent": true
+    },
+    {
+      "source": "/guides/batch-processing",
+      "destination": "/guides/on-demand",
+      "permanent": true
+    },
+    {
+      "source": "/api-reference/render/poll",
+      "destination": "/api-reference/render/status",
+      "permanent": true
+    },
+    {
+      "source": "/api-reference/render/download",
+      "destination": "/api-reference/render/status",
       "permanent": true
     }
   ],

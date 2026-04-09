@@ -26,11 +26,11 @@ Pre-create characters and scenes to cut render latency by ~3x. Assets are stored
     API_KEY, BASE = "YOUR_API_KEY", "https://apis.viggle.ai"
     headers = {"Authorization": f"Bearer {API_KEY}"}
 
-    resp = requests.post(f"{BASE}/api/characters/preprocess", headers=headers,
+    resp = requests.post(f"{BASE}/api/characters", headers=headers,
         files={"image": open("character.png", "rb")},
         data={"name": "My Character"})
     character = resp.json()
-    character_id = character["id"]
+    character_id = character["character_id"]
     ```
 
     ```javascript JavaScript
@@ -39,14 +39,14 @@ Pre-create characters and scenes to cut render latency by ~3x. Assets are stored
     const form = new FormData();
     form.append("name", "My Character");
     form.append("image", imageFile);
-    const resp = await fetch(`${BASE}/api/characters/preprocess`, {
+    const resp = await fetch(`${BASE}/api/characters`, {
       method: "POST", headers, body: form
     }).then(r => r.json());
-    const characterId = resp.id;
+    const characterId = resp.character_id;
     ```
 
     ```bash cURL
-    curl -X POST "https://apis.viggle.ai/api/characters/preprocess" \
+    curl -X POST "https://apis.viggle.ai/api/characters" \
       -H "Authorization: Bearer YOUR_API_KEY" \
       -F "name=My Character" -F "image=@character.png"
     ```
@@ -94,25 +94,25 @@ Pre-create characters and scenes to cut render latency by ~3x. Assets are stored
     <CodeGroup>
 
     ```python Python
-    resp = requests.post(f"{BASE}/api/scenes/preprocess", headers=headers,
+    resp = requests.post(f"{BASE}/api/scenes", headers=headers,
         files={"video": open("dance.mp4", "rb")},
         data={"name": "Dance Sequence"})
     scene = resp.json()
-    scene_id = scene["id"]
+    scene_id = scene["scene_id"]
     ```
 
     ```javascript JavaScript
     const sceneForm = new FormData();
     sceneForm.append("name", "Dance Sequence");
     sceneForm.append("video", videoFile);
-    const sceneResp = await fetch(`${BASE}/api/scenes/preprocess`, {
+    const sceneResp = await fetch(`${BASE}/api/scenes`, {
       method: "POST", headers, body: sceneForm
     }).then(r => r.json());
-    const sceneId = sceneResp.id;
+    const sceneId = sceneResp.scene_id;
     ```
 
     ```bash cURL
-    curl -X POST "https://apis.viggle.ai/api/scenes/preprocess" \
+    curl -X POST "https://apis.viggle.ai/api/scenes" \
       -H "Authorization: Bearer YOUR_API_KEY" \
       -F "name=Dance Sequence" -F "video=@dance.mp4"
     ```
@@ -183,37 +183,41 @@ Pre-create characters and scenes to cut render latency by ~3x. Assets are stored
   </Step>
 
   <Step title="Poll and download" icon="download">
-    Wait for completion, then download. Status polling requires no auth.
+    Poll every 3-5 seconds until complete, then use `cdn_url` to download the final video.
 
     <CodeGroup>
 
     ```python Python
     while True:
         status = requests.get(f"{BASE}/api/render/{job['job_id']}").json()
-        if status["status"] == "complete": break
-        elif status["status"] == "failed": raise Exception(status.get("error"))
-        time.sleep(5)
+        if status["status"] == "complete":
+            cdn_url = status["cdn_url"]
+            break
+        elif status["status"] == "failed": raise Exception(status.get("error_message"))
+        time.sleep(3)
 
-    video = requests.get(f"{BASE}/api/render/{job['job_id']}/download", headers=headers)
+    video = requests.get(cdn_url)
     open("output.mp4", "wb").write(video.content)
     ```
 
     ```javascript JavaScript
     const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+    let cdnUrl;
     while (true) {
       const s = await fetch(`${BASE}/api/render/${job.job_id}`).then(r => r.json());
-      if (s.status === "complete") break;
-      if (s.status === "failed") throw new Error(s.error);
-      await sleep(5000);
+      if (s.status === "complete") { cdnUrl = s.cdn_url; break; }
+      if (s.status === "failed") throw new Error(s.error_message);
+      await sleep(3000);
     }
-    const vid = await fetch(`${BASE}/api/render/${job.job_id}/download`, { headers });
+    const vid = await fetch(cdnUrl);
     require("fs").writeFileSync("output.mp4", Buffer.from(await vid.arrayBuffer()));
     ```
 
     ```bash cURL
+    # Poll until complete
     curl "https://apis.viggle.ai/api/render/JOB_ID"
-    curl -L "https://apis.viggle.ai/api/render/JOB_ID/download" \
-      -H "Authorization: Bearer YOUR_API_KEY" -o output.mp4
+    # Download using the cdn_url from the response
+    curl -o output.mp4 "CDN_URL_FROM_RESPONSE"
     ```
 
     </CodeGroup>
@@ -311,9 +315,6 @@ Pre-create characters and scenes to cut render latency by ~3x. Assets are stored
   </Card>
   <Card title="Import Templates" icon="download" href="/guides/import-templates">
     Use pre-made templates from viggle.ai
-  </Card>
-  <Card title="Live Rendering" icon="play" href="/guides/live-render">
-    Stream video chunks in real-time
   </Card>
   <Card title="Render Options" icon="gauge" href="/render-options">
     Background mode, fast mode, and more

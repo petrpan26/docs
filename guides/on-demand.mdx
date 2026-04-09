@@ -52,7 +52,7 @@ Send a character image and driving video directly. No preprocessing, no stored a
   </Step>
 
   <Step title="Poll for completion" icon="clock">
-    No auth required for the status endpoint.
+    Poll every 3-5 seconds. No auth required for the status endpoint.
 
     <CodeGroup>
 
@@ -61,8 +61,8 @@ Send a character image and driving video directly. No preprocessing, no stored a
     while True:
         status = requests.get(f"{BASE}/api/render/{job['job_id']}").json()
         if status["status"] == "complete": break
-        elif status["status"] == "failed": raise Exception(status.get("error"))
-        time.sleep(5)
+        elif status["status"] == "failed": raise Exception(status.get("error_message"))
+        time.sleep(3)
     ```
 
     ```javascript JavaScript
@@ -70,8 +70,8 @@ Send a character image and driving video directly. No preprocessing, no stored a
     while (true) {
       const s = await fetch(`${BASE}/api/render/${job.job_id}`).then(r => r.json());
       if (s.status === "complete") break;
-      if (s.status === "failed") throw new Error(s.error);
-      await sleep(5000);
+      if (s.status === "failed") throw new Error(s.error_message);
+      await sleep(3000);
     }
     ```
 
@@ -85,23 +85,25 @@ Send a character image and driving video directly. No preprocessing, no stored a
   </Step>
 
   <Step title="Download" icon="download">
-    Auth required for download.
+    When the job is complete, use the `cdn_url` from the status response to download the video.
 
     <CodeGroup>
 
     ```python Python
-    video = requests.get(f"{BASE}/api/render/{job['job_id']}/download", headers=headers)
+    cdn_url = status["cdn_url"]
+    video = requests.get(cdn_url)
     open("output.mp4", "wb").write(video.content)
     ```
 
     ```javascript JavaScript
-    const video = await fetch(`${BASE}/api/render/${job.job_id}/download`, { headers });
+    const cdnUrl = s.cdn_url;
+    const video = await fetch(cdnUrl);
     require("fs").writeFileSync("output.mp4", Buffer.from(await video.arrayBuffer()));
     ```
 
     ```bash cURL
-    curl -L "https://apis.viggle.ai/api/render/JOB_ID/download" \
-      -H "Authorization: Bearer YOUR_API_KEY" -o output.mp4
+    # Use the cdn_url value from the status response
+    curl -o output.mp4 "CDN_URL_FROM_STATUS_RESPONSE"
     ```
 
     </CodeGroup>
@@ -166,9 +168,6 @@ See [Render Options](/render-options) for all available parameters.
   </Card>
   <Card title="Import Templates" icon="download" href="/guides/import-templates">
     Use pre-made templates from viggle.ai
-  </Card>
-  <Card title="Live Rendering" icon="radio" href="/guides/live-render">
-    Stream video chunks in real-time
   </Card>
   <Card title="Render Options" icon="gauge" href="/render-options">
     Background mode, fast mode, and more

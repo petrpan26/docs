@@ -213,13 +213,12 @@ echo "Saved output.mp4"
         status = requests.get(f"{BASE}/api/render/{job['job_id']}").json()
         if status["status"] == "complete":
             break
-        time.sleep(5)
+        elif status["status"] == "failed":
+            raise Exception(status.get("error_message"))
+        time.sleep(3)
 
-    # Download requires auth
-    video = requests.get(
-        f"{BASE}/api/render/{job['job_id']}/download",
-        headers=headers
-    )
+    # Download from cdn_url
+    video = requests.get(status["cdn_url"])
     with open("output.mp4", "wb") as f:
         f.write(video.content)
     ```

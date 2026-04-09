@@ -5,71 +5,20 @@ openapi: 'GET /api/render/{job_id}'
 description: 'Check render job status and progress'
 ---
 
-Check job status. Returns immediately. Poll every 5 seconds until `complete` or `failed`.
+Check job status. Returns immediately. Poll every 3-5 seconds until `complete` or `failed`. When complete, use the `cdn_url` field to download the final video.
 
-When a job fails, the response includes `error` and `error_code` fields:
+<Note>
+  This endpoint does **not** require authentication. You can poll job status without an API key.
+</Note>
 
-```json
-{
-  "status": "failed",
-  "error": "Processing resources exceeded",
-  "error_code": "CS-RNRD-003",
-  "progress": { "completed_chunks": 15, "total_chunks": 22 }
-}
-```
+## Response fields
 
-Include the `error_code` when contacting **support@viggle.ai**. See [Error Codes](/error-codes) for the full list.
+Key fields in the response:
 
-## Examples
-
-<CodeGroup>
-```python Python
-import requests
-import time
-
-job_id = "job_abc123xyz"
-headers = {"Authorization": "Bearer YOUR_API_KEY"}
-url = f"https://apis.viggle.ai/api/render/{job_id}"
-
-while True:
-    data = requests.get(url, headers=headers).json()
-    status = data["status"]
-    print(f"Status: {status}")
-
-    if status == "complete":
-        print(f"Video ready: {data.get('cdn_url')}")
-        break
-    elif status == "failed":
-        print(f"Error {data.get('error_code')}: {data.get('error')}")
-        break
-
-    time.sleep(5)
-```
-
-```javascript JavaScript
-const jobId = "job_abc123xyz";
-const headers = { "Authorization": "Bearer YOUR_API_KEY" };
-const url = `https://apis.viggle.ai/api/render/${jobId}`;
-
-while (true) {
-  const resp = await fetch(url, { headers });
-  const data = await resp.json();
-  console.log(`Status: ${data.status}`);
-
-  if (data.status === "complete") {
-    console.log(`Video ready: ${data.cdn_url}`);
-    break;
-  } else if (data.status === "failed") {
-    console.error(`Error ${data.error_code}: ${data.error}`);
-    break;
-  }
-
-  await new Promise(r => setTimeout(r, 5000));
-}
-```
-
-```bash cURL
-curl "https://apis.viggle.ai/api/render/job_abc123xyz" \
-  -H "Authorization: Bearer YOUR_API_KEY"
-```
-</CodeGroup>
+| Field | Description |
+|-------|-------------|
+| `status` | Current job status: `queued`, `processing`, `rendering`, `merging`, `complete`, or `failed` |
+| `progress_pct` | Estimated progress percentage (0-100) |
+| `cdn_url` | Direct URL to download the final video (available when `status` is `complete`) |
+| `error_code` | Structured error code when `status` is `failed` (e.g. `CS-UORC01-009`) |
+| `error_message` | Human-readable error description when `status` is `failed` |

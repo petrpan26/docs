@@ -29,10 +29,12 @@ https://docs.viggle.ai/llms-full.txt
         "ref_image": open("character.png", "rb"),
         "driving_video": open("dance.mp4", "rb"),
     }).json()
-    while requests.get(f"{BASE}/api/render/{job['job_id']}").json()["status"] != "complete":
-        time.sleep(5)
-    r = requests.get(f"{BASE}/api/render/{job['job_id']}/download", headers=h)
-    open("output.mp4", "wb").write(r.content)
+    while True:
+        s = requests.get(f"{BASE}/api/render/{job['job_id']}").json()
+        if s["status"] == "complete": break
+        time.sleep(3)
+    video = requests.get(s["cdn_url"])
+    open("output.mp4", "wb").write(video.content)
     ```
 
     ```javascript JavaScript
@@ -43,12 +45,13 @@ https://docs.viggle.ai/llms-full.txt
     form.append("ref_image", imageFile);
     form.append("driving_video", videoFile);
     const job = await fetch(`${BASE}/api/render`, { method: "POST", headers: h, body: form }).then((r) => r.json());
+    let s;
     while (true) {
-      const s = await fetch(`${BASE}/api/render/${job.job_id}`).then((r) => r.json());
+      s = await fetch(`${BASE}/api/render/${job.job_id}`).then((r) => r.json());
       if (s.status === "complete") break;
-      await sleep(5000);
+      await sleep(3000);
     }
-    const video = await fetch(`${BASE}/api/render/${job.job_id}/download`, { headers: h });
+    const video = await fetch(s.cdn_url);
     require("fs").writeFileSync("output.mp4", Buffer.from(await video.arrayBuffer()));
     ```
 
@@ -56,9 +59,10 @@ https://docs.viggle.ai/llms-full.txt
     curl -X POST "https://apis.viggle.ai/api/render" \
       -H "Authorization: Bearer YOUR_API_KEY" \
       -F "ref_image=@character.png" -F "driving_video=@dance.mp4"
+    # Poll until status is "complete"
     curl "https://apis.viggle.ai/api/render/JOB_ID"
-    curl -L "https://apis.viggle.ai/api/render/JOB_ID/download" \
-      -H "Authorization: Bearer YOUR_API_KEY" -o output.mp4
+    # Download using cdn_url from the response
+    curl -o output.mp4 "CDN_URL_FROM_RESPONSE"
     ```
 
     </CodeGroup>
@@ -75,12 +79,12 @@ https://docs.viggle.ai/llms-full.txt
     import requests
     API_KEY, BASE = "YOUR_API_KEY", "https://apis.viggle.ai"
     h = {"Authorization": f"Bearer {API_KEY}"}
-    char = requests.post(f"{BASE}/api/characters/preprocess", headers=h,
+    char = requests.post(f"{BASE}/api/characters", headers=h,
         files={"image": open("character.png", "rb")}, data={"name": "My Character"}).json()
-    scene = requests.post(f"{BASE}/api/scenes/preprocess", headers=h,
+    scene = requests.post(f"{BASE}/api/scenes", headers=h,
         files={"video": open("dance.mp4", "rb")}, data={"name": "Dance"}).json()
     job = requests.post(f"{BASE}/api/render", headers=h, data={
-        "character_id": char["id"], "scene_id": scene["id"],
+        "character_id": char["character_id"], "scene_id": scene["scene_id"],
     }).json()
     ```
 
@@ -104,29 +108,6 @@ https://docs.viggle.ai/llms-full.txt
       Hot Picks, multi-person templates, character mapping
     </Card>
   </Tab>
-
-  <Tab title="Live Stream" id="live-stream" icon="radio">
-    Long-poll `/poll` for fMP4 chunks as they render—ideal for previews and streaming.
-
-    ```python
-    import requests
-    API_KEY, BASE, job_id = "YOUR_API_KEY", "https://apis.viggle.ai", "JOB_ID"
-    h = {"Authorization": f"Bearer {API_KEY}"}
-    last_chunk = -1
-    while True:
-        resp = requests.get(f"{BASE}/api/render/{job_id}/poll", headers=h,
-            params={"last_chunk": last_chunk, "timeout": 30}).json()
-        for chunk in resp["new_chunks"]:
-            print(chunk["chunk_id"], chunk["cdn_url"])
-            last_chunk = chunk["chunk_id"]
-        if resp["status"] == "complete":
-            break
-    ```
-
-    <Card title="Live Rendering Guide" icon="play" href="/guides/live-render">
-      MSE playback, long-polling, and fMP4 details
-    </Card>
-  </Tab>
 </Tabs>
 
 ## Quick start
@@ -136,10 +117,10 @@ https://docs.viggle.ai/llms-full.txt
     Create one in the [Viggle Dashboard](https://portal.viggle.ai/api-keys).
   </Step>
   <Step title="Pick a mode" icon="list">
-    Use the **Rendering modes** tabs: **On-Demand** (fastest first render), **Preprocessed** (~3x faster at scale), **Import Templates**, or **Live Stream**.
+    Use the **Rendering modes** tabs: **On-Demand** (fastest first render), **Preprocessed** (~3x faster at scale), or **Import Templates**.
   </Step>
   <Step title="Render" icon="film">
-    `POST /api/render` — poll `GET /api/render/{job_id}` until `complete`, then download.
+    `POST /api/render` -- poll `GET /api/render/{job_id}` every 3-5s until `complete`, then use `cdn_url` to download.
   </Step>
 </Steps>
 
@@ -154,6 +135,6 @@ https://docs.viggle.ai/llms-full.txt
     Full endpoint documentation
   </Card>
   <Card title="Pricing" icon="credit-card" href="/pricing">
-    1 credit/sec — about $0.01/sec
+    1 credit/sec -- about $0.01/sec
   </Card>
 </Columns>

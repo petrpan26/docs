@@ -261,10 +261,10 @@ Import pre-made templates from [viggle.ai](https://viggle.ai) instead of uploadi
   while True:
       status = requests.get(f"{BASE}/api/render/{job['job_id']}").json()
       if status["status"] == "complete": break
-      elif status["status"] == "failed": raise Exception(status.get("error"))
-      time.sleep(5)
+      elif status["status"] == "failed": raise Exception(status.get("error_message"))
+      time.sleep(3)
 
-  video = requests.get(f"{BASE}/api/render/{job['job_id']}/download", headers=headers)
+  video = requests.get(status["cdn_url"])
   open("output.mp4", "wb").write(video.content)
   ```
 
