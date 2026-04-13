@@ -804,6 +804,44 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+  /api/render/{job_id}/download:
+    get:
+      summary: Download Video
+      description: Redirects to the CDN URL for the completed video. Returns 302 redirect when the job is complete. Returns 400 if the job is not yet complete. This is a convenience endpoint — the same `cdn_url` is available in the GET /api/render/{job_id} status response.
+      operationId: downloadVideo
+      tags:
+        - Render
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: job_abc123xyz
+      responses:
+        '302':
+          description: Redirect to CDN URL
+        '400':
+          description: Job not complete yet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
     delete:
       summary: Cancel Job
       description: Cancel a running job or delete a completed one. Releases reserved resources and refunds credits for incomplete jobs.
