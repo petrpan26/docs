@@ -17,8 +17,60 @@ Key fields in the response:
 
 | Field | Description |
 |-------|-------------|
-| `status` | Current job status: `queued`, `processing`, `rendering`, `merging`, `complete`, or `failed` |
+| `status` | Current job status: `queued`, `processing`, `complete`, or `failed` |
 | `progress_pct` | Estimated progress percentage (0-100) |
+| `checkpoint` | Current pipeline stage: `ref_done`, `dri_done`, `bg_done`, `render_done` |
 | `cdn_url` | Direct URL to download the final video (available when `status` is `complete`) |
 | `error_code` | Structured error code when `status` is `failed` (e.g. `CS-UORC01-009`) |
 | `error_message` | Human-readable error description when `status` is `failed` |
+
+## Polling examples
+
+<CodeGroup>
+```python Python
+import requests
+import time
+
+job_id = "job_abc123xyz"
+url = f"https://apis.viggle.ai/api/render/{job_id}"
+
+while True:
+    data = requests.get(url).json()
+    print(f"Status: {data['status']} ({data.get('progress_pct', 0)}%)")
+
+    if data["status"] == "complete":
+        print(f"Video ready: {data['cdn_url']}")
+        break
+    elif data["status"] == "failed":
+        print(f"Error {data.get('error_code')}: {data.get('error_message')}")
+        break
+
+    time.sleep(3)
+```
+
+```javascript JavaScript
+const jobId = "job_abc123xyz";
+const url = `https://apis.viggle.ai/api/render/${jobId}`;
+
+while (true) {
+  const resp = await fetch(url);
+  const data = await resp.json();
+  console.log(`Status: ${data.status} (${data.progress_pct ?? 0}%)`);
+
+  if (data.status === "complete") {
+    console.log(`Video ready: ${data.cdn_url}`);
+    break;
+  } else if (data.status === "failed") {
+    console.error(`Error ${data.error_code}: ${data.error_message}`);
+    break;
+  }
+
+  await new Promise(r => setTimeout(r, 3000));
+}
+```
+
+```bash cURL
+# Single status check (poll by repeating this call every 3-5 seconds)
+curl "https://apis.viggle.ai/api/render/job_abc123xyz"
+```
+</CodeGroup>
