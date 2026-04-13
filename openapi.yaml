@@ -226,6 +226,11 @@ components:
           format: uri
           nullable: true
           description: CDN URL to download the final video (available when status is complete)
+        mask_cdn_url:
+          type: string
+          format: uri
+          nullable: true
+          description: CDN URL for the alpha/mask video (transparent mode only). White = character, black = background. Use with cdn_url for compositing.
         error_code:
           type: string
           nullable: true
