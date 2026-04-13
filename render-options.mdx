@@ -7,8 +7,15 @@ Pass optional form fields when creating a render job via `POST /api/render`. All
 
 ## Available options
 
-<ParamField body="model" type="string" default="V4_BaseSG">
-  The rendering model. Currently only `V4_BaseSG` is available.
+<ParamField body="model" type="string" default="V4_Preview">
+  Avatar model for rendering.
+
+  | Value | Description |
+  |-------|-------------|
+  | `V4_Preview` | Default model (default) |
+  | `V3_Preview` | Alternative avatar model with a dedicated GPU pool |
+
+  <Warning>Scenes preprocessed on one model cannot be rendered on the other. If you preprocess a scene with `V3_Preview`, you must also render with `V3_Preview`.</Warning>
 </ParamField>
 
 <ParamField body="background_mode" type="string" default="original">

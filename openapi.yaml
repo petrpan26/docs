@@ -514,6 +514,11 @@ paths:
                   enum: [original, solid, transparent]
                   default: original
                   description: Background handling mode for the scene
+                model:
+                  type: string
+                  enum: [V4_Preview, V3_Preview]
+                  default: V4_Preview
+                  description: Avatar model to preprocess the scene with. The scene can only be rendered with the same model.
       responses:
         '200':
           description: Scene creation started
@@ -722,9 +727,9 @@ paths:
                   example: '{"person_a1b2c3d4": "char_alice", "person_e5f6g7h8": "char_bob"}'
                 model:
                   type: string
-                  enum: [V4_BaseSG]
-                  default: V4_BaseSG
-                  description: Rendering model.
+                  enum: [V4_Preview, V3_Preview]
+                  default: V4_Preview
+                  description: Avatar model. V3_Preview uses a different rendering model with a dedicated GPU pool. Scenes preprocessed on one model cannot be rendered on the other.
                 background_mode:
                   type: string
                   enum: [original, solid, transparent]
