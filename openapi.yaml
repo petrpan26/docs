@@ -721,11 +721,21 @@ paths:
                 ref_image:
                   type: string
                   format: binary
-                  description: Character reference image file (PNG, JPG). Required for on-demand renders.
+                  description: Character reference image file (PNG, JPG). Use this or ref_image_url.
+                ref_image_url:
+                  type: string
+                  format: uri
+                  description: URL to a character image. The server fetches it. Use instead of ref_image file upload.
+                  example: https://example.com/character.png
                 driving_video:
                   type: string
                   format: binary
-                  description: Driving video file (MP4). Required for on-demand renders and fast mode.
+                  description: Driving video file (MP4). Use this or driving_video_url.
+                driving_video_url:
+                  type: string
+                  format: uri
+                  description: URL to a driving video. The server fetches it. Use instead of driving_video file upload.
+                  example: https://example.com/dance.mp4
                 character_id:
                   type: string
                   description: ID of a ready character (for preprocessed renders)
