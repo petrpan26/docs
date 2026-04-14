@@ -18,14 +18,15 @@ Pass optional form fields when creating a render job via `POST /api/render`. All
   <Warning>Scenes preprocessed on one model cannot be rendered on the other. If you preprocess a scene with `V3_Preview`, you must also render with `V3_Preview`.</Warning>
 </ParamField>
 
-<ParamField body="background_mode" type="string" default="original">
+<ParamField body="background_mode" type="string" default="inpaint">
   Background handling mode.
 
   | Value | Description |
   |-------|-------------|
-  | `original` | Keep the original video background (default) |
+  | `inpaint` | AI-fill the background behind the character (default) |
+  | `original` | Keep the original video background |
   | `solid` | Replace with solid color (use with `bg_color`) |
-  | `transparent` | Separate mask video for compositing |
+  | `transparent` | Separate mask video for compositing (returns `mask_cdn_url` alongside `cdn_url`) |
 </ParamField>
 
 <ParamField body="bg_color" type="string" default="0,255,0">

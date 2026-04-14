@@ -207,7 +207,7 @@ components:
           example: job_abc123xyz
         status:
           type: string
-          enum: [queued, processing, rendering, merging, complete, failed]
+          enum: [queued, processing, complete, failed, cancelled]
         mode:
           type: string
           description: The render mode used (e.g. full_pipeline, preprocessed, fast)
@@ -299,12 +299,20 @@ components:
     CreditBalance:
       type: object
       properties:
-        credits_available:
-          type: number
-          example: 250.0
         user_id:
           type: string
           example: usr_550e8400e29b41d4
+        organization_id:
+          type: string
+          nullable: true
+          description: Organization ID if the API key belongs to an organization
+        credits_available:
+          type: number
+          example: 250.0
+        contract_id:
+          type: string
+          nullable: true
+          description: Contract ID if the user has a contract-based pricing plan
 
 paths:
   # ──────────────────────────────────────────────
@@ -490,7 +498,7 @@ paths:
   /api/scenes/preprocess:
     post:
       summary: Create Scene
-      description: Upload a driving video to create a reusable scene. Extracts motion data for character animation. Scene creation is free. Credits are consumed at render time. Poll GET /api/scenes/{id} until status is ready.
+      description: Upload a driving video to create a reusable scene. Extracts motion data for character animation. Costs 1 credit. Poll GET /api/scenes/{id} until status is ready.
       operationId: createScene
       tags:
         - Scenes
@@ -516,9 +524,9 @@ paths:
                   description: Driving video file (MP4, MOV, WebM)
                 background_mode:
                   type: string
-                  enum: [original, solid, transparent]
-                  default: original
-                  description: Background handling mode for the scene
+                  enum: [inpaint, original, solid, transparent]
+                  default: inpaint
+                  description: "Background handling for the scene: inpaint (AI fill, default), original (keep video background), solid (single color), transparent (alpha mask)"
                 model:
                   type: string
                   enum: [V4_Preview, V3_Preview]
@@ -737,9 +745,9 @@ paths:
                   description: Avatar model. V3_Preview uses a different rendering model with a dedicated GPU pool. Scenes preprocessed on one model cannot be rendered on the other.
                 background_mode:
                   type: string
-                  enum: [original, solid, transparent]
-                  default: original
-                  description: Background handling mode
+                  enum: [inpaint, original, solid, transparent]
+                  default: inpaint
+                  description: "Background handling: inpaint (AI fill, default), original (keep video background), solid (single color), transparent (alpha mask for compositing)"
                 bg_color:
                   type: string
                   description: 'RGB string for solid background color, e.g., "0,255,0". Only used when background_mode is solid.'
