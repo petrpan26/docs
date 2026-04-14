@@ -69,7 +69,7 @@ if "detail" in data:
     print(f"Error {data['detail']['error_code']}: {data['detail']['message']}")
 else:
     print(f"Job created: {data['job_id']}")
-    print(f"Poll URL: {data['poll_url']}")
+    print(f"Poll: GET /api/render/{data['job_id']}")
 ```
 
 ```javascript JavaScript
@@ -89,7 +89,7 @@ if (data.detail) {
   console.error(`Error ${data.detail.error_code}: ${data.detail.message}`);
 } else {
   console.log(`Job created: ${data.job_id}`);
-  console.log(`Poll URL: ${data.poll_url}`);
+  console.log(`Poll: GET /api/render/${data.job_id}`);
 }
 ```
 

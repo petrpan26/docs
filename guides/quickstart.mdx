@@ -26,7 +26,7 @@ Pre-create characters and scenes to cut render latency by ~3x. Assets are stored
     API_KEY, BASE = "YOUR_API_KEY", "https://apis.viggle.ai"
     headers = {"Authorization": f"Bearer {API_KEY}"}
 
-    resp = requests.post(f"{BASE}/api/characters", headers=headers,
+    resp = requests.post(f"{BASE}/api/characters/preprocess", headers=headers,
         files={"image": open("character.png", "rb")},
         data={"name": "My Character"})
     character = resp.json()
@@ -39,14 +39,14 @@ Pre-create characters and scenes to cut render latency by ~3x. Assets are stored
     const form = new FormData();
     form.append("name", "My Character");
     form.append("image", imageFile);
-    const resp = await fetch(`${BASE}/api/characters`, {
+    const resp = await fetch(`${BASE}/api/characters/preprocess`, {
       method: "POST", headers, body: form
     }).then(r => r.json());
     const characterId = resp.character_id;
     ```
 
     ```bash cURL
-    curl -X POST "https://apis.viggle.ai/api/characters" \
+    curl -X POST "https://apis.viggle.ai/api/characters/preprocess" \
       -H "Authorization: Bearer YOUR_API_KEY" \
       -F "name=My Character" -F "image=@character.png"
     ```
@@ -94,7 +94,7 @@ Pre-create characters and scenes to cut render latency by ~3x. Assets are stored
     <CodeGroup>
 
     ```python Python
-    resp = requests.post(f"{BASE}/api/scenes", headers=headers,
+    resp = requests.post(f"{BASE}/api/scenes/preprocess", headers=headers,
         files={"video": open("dance.mp4", "rb")},
         data={"name": "Dance Sequence"})
     scene = resp.json()
@@ -105,14 +105,14 @@ Pre-create characters and scenes to cut render latency by ~3x. Assets are stored
     const sceneForm = new FormData();
     sceneForm.append("name", "Dance Sequence");
     sceneForm.append("video", videoFile);
-    const sceneResp = await fetch(`${BASE}/api/scenes`, {
+    const sceneResp = await fetch(`${BASE}/api/scenes/preprocess`, {
       method: "POST", headers, body: sceneForm
     }).then(r => r.json());
     const sceneId = sceneResp.scene_id;
     ```
 
     ```bash cURL
-    curl -X POST "https://apis.viggle.ai/api/scenes" \
+    curl -X POST "https://apis.viggle.ai/api/scenes/preprocess" \
       -H "Authorization: Bearer YOUR_API_KEY" \
       -F "name=Dance Sequence" -F "video=@dance.mp4"
     ```

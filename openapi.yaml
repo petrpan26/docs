@@ -336,7 +336,7 @@ paths:
   # ──────────────────────────────────────────────
   # Characters
   # ──────────────────────────────────────────────
-  /api/characters:
+  /api/characters/preprocess:
     post:
       summary: Create Character
       description: Upload a reference image to create a reusable character. Processing runs in background. Costs 1 credit. Poll GET /api/characters/{id} until status is ready.
@@ -487,7 +487,7 @@ paths:
   # ──────────────────────────────────────────────
   # Scenes
   # ──────────────────────────────────────────────
-  /api/scenes:
+  /api/scenes/preprocess:
     post:
       summary: Create Scene
       description: Upload a driving video to create a reusable scene. Extracts motion data for character animation. Scene creation is free. Credits are consumed at render time. Poll GET /api/scenes/{id} until status is ready.

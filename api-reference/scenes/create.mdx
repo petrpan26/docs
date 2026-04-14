@@ -1,7 +1,7 @@
 ---
 title: 'Create Scene'
 icon: 'clapperboard'
-openapi: 'POST /api/scenes'
+openapi: 'POST /api/scenes/preprocess'
 description: 'Upload a driving video to create a reusable scene'
 ---
 
@@ -32,8 +32,8 @@ result = response.json()
 if result.get("error_code"):
     print(f"Error: {result['error_code']} - {result.get('message')}")
 else:
-    print(f"Scene ID: {result['data']['id']}")
-    print(f"Status: {result['data']['status']}")
+    print(f"Scene ID: {result['scene_id']}")
+    print(f"Status: {result['status']}")
 ```
 
 ```javascript JavaScript
@@ -54,8 +54,8 @@ const result = await response.json();
 if (result.error_code) {
   console.error(`Error: ${result.error_code} - ${result.message}`);
 } else {
-  console.log(`Scene ID: ${result.data.id}`);
-  console.log(`Status: ${result.data.status}`);
+  console.log(`Scene ID: ${result.scene_id}`);
+  console.log(`Status: ${result.status}`);
 }
 ```
 
