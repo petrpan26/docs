@@ -151,6 +151,28 @@ curl -X POST "https://apis.viggle.ai/api/render" \
 
 See [Render Options](/render-options) for all available parameters.
 
+### Using V3 model
+
+Pass `model=V3_Preview` to render with the V3 avatar model:
+
+```bash
+curl -X POST "https://apis.viggle.ai/api/render" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -F "ref_image=@character.png" -F "driving_video=@dance.mp4" \
+  -F "model=V3_Preview"
+```
+
+### Using URL inputs
+
+Pass URLs instead of uploading files. The server fetches the content:
+
+```bash
+curl -X POST "https://apis.viggle.ai/api/render" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -d "ref_image_url=https://example.com/character.png" \
+  -d "driving_video_url=https://example.com/dance.mp4"
+```
+
 ## On-Demand vs Preprocessing
 
 | | On-Demand | Preprocessing |

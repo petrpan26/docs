@@ -73,15 +73,15 @@ https://docs.viggle.ai/llms-full.txt
   </Tab>
 
   <Tab title="Preprocessed" id="preprocessed" icon="rocket">
-    Create character + scene once (free), then render with IDs for lower latency.
+    Create character (1 credit) + scene (free) once, then render with IDs for lower latency.
 
     ```python
     import requests
     API_KEY, BASE = "YOUR_API_KEY", "https://apis.viggle.ai"
     h = {"Authorization": f"Bearer {API_KEY}"}
-    char = requests.post(f"{BASE}/api/characters", headers=h,
+    char = requests.post(f"{BASE}/api/characters/preprocess", headers=h,
         files={"image": open("character.png", "rb")}, data={"name": "My Character"}).json()
-    scene = requests.post(f"{BASE}/api/scenes", headers=h,
+    scene = requests.post(f"{BASE}/api/scenes/preprocess", headers=h,
         files={"video": open("dance.mp4", "rb")}, data={"name": "Dance"}).json()
     job = requests.post(f"{BASE}/api/render", headers=h, data={
         "character_id": char["character_id"], "scene_id": scene["scene_id"],
@@ -109,6 +109,25 @@ https://docs.viggle.ai/llms-full.txt
     </Card>
   </Tab>
 </Tabs>
+
+## Model selection
+
+Two avatar models are available. Pass the `model` field on render and scene preprocess requests.
+
+| Model | Description |
+|-------|-------------|
+| `V4_Preview` | Default model |
+| `V3_Preview` | Alternative avatar model with a dedicated GPU pool |
+
+```bash
+# Render with V3
+curl -X POST "https://apis.viggle.ai/api/render" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -F "ref_image=@character.png" -F "driving_video=@dance.mp4" \
+  -F "model=V3_Preview"
+```
+
+<Warning>Scenes preprocessed on one model cannot be rendered on the other. If you preprocess a scene with `V3_Preview`, you must also render with `V3_Preview`.</Warning>
 
 ## Quick start
 
