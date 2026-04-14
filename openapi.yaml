@@ -498,7 +498,7 @@ paths:
   /api/scenes/preprocess:
     post:
       summary: Create Scene
-      description: Upload a driving video to create a reusable scene. Extracts motion data for character animation. Costs 1 credit. Poll GET /api/scenes/{id} until status is ready.
+      description: Upload a driving video to create a reusable scene. Extracts motion data for character animation. Scene creation is free. Credits are consumed at render time. Poll GET /api/scenes/{id} until status is ready.
       operationId: createScene
       tags:
         - Scenes
@@ -524,9 +524,9 @@ paths:
                   description: Driving video file (MP4, MOV, WebM)
                 background_mode:
                   type: string
-                  enum: [inpaint, original, solid, transparent]
-                  default: inpaint
-                  description: "Background handling for the scene: inpaint (AI fill, default), original (keep video background), solid (single color), transparent (alpha mask)"
+                  enum: [original, inpaint, solid, transparent]
+                  default: original
+                  description: "Background handling for the scene: original (keep video background, default), inpaint (AI fill), solid (single color), transparent (alpha mask)"
                 model:
                   type: string
                   enum: [V4_Preview, V3_Preview]
@@ -745,9 +745,9 @@ paths:
                   description: Avatar model. V3_Preview uses a different rendering model with a dedicated GPU pool. Scenes preprocessed on one model cannot be rendered on the other.
                 background_mode:
                   type: string
-                  enum: [inpaint, original, solid, transparent]
-                  default: inpaint
-                  description: "Background handling: inpaint (AI fill, default), original (keep video background), solid (single color), transparent (alpha mask for compositing)"
+                  enum: [original, inpaint, solid, transparent]
+                  default: original
+                  description: "Background handling: original (keep video background, default), inpaint (AI fill), solid (single color), transparent (alpha mask for compositing)"
                 bg_color:
                   type: string
                   description: 'RGB string for solid background color, e.g., "0,255,0". Only used when background_mode is solid.'
