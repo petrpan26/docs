@@ -361,7 +361,6 @@ paths:
               type: object
               required:
                 - name
-                - image
               properties:
                 name:
                   type: string
@@ -370,7 +369,12 @@ paths:
                 image:
                   type: string
                   format: binary
-                  description: Reference image file (PNG, JPG, WebP)
+                  description: Reference image file (PNG, JPG, WebP). Use this or image_url.
+                image_url:
+                  type: string
+                  format: uri
+                  description: URL to a character image. Server fetches it. Use instead of image file upload.
+                  example: https://example.com/character.png
       responses:
         '200':
           description: Character creation started
@@ -512,7 +516,6 @@ paths:
               type: object
               required:
                 - name
-                - video
               properties:
                 name:
                   type: string
@@ -521,7 +524,12 @@ paths:
                 video:
                   type: string
                   format: binary
-                  description: Driving video file (MP4, MOV, WebM)
+                  description: Driving video file (MP4, MOV, WebM). Use this or video_url.
+                video_url:
+                  type: string
+                  format: uri
+                  description: URL to a driving video. Server fetches it. Use instead of video file upload.
+                  example: https://example.com/dance.mp4
                 background_mode:
                   type: string
                   enum: [original, inpaint, solid, transparent]
