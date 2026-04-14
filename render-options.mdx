@@ -27,10 +27,11 @@ Pass optional form fields when creating a render job via `POST /api/render`. All
 
   | Value | Description |
   |-------|-------------|
-  | `original` | Keep the original video background (default) |
-  | `inpaint` | AI-fill the background behind the character |
+  | `original` | Remove the person and AI-fill the background (default) |
   | `solid` | Replace with solid color (use with `bg_color`) |
   | `transparent` | Separate mask video for compositing (returns `mask_cdn_url` alongside `cdn_url`) |
+
+  <Note>`inpaint` is accepted as an alias for `original` for backward compatibility.</Note>
 </ParamField>
 
 <ParamField body="bg_color" type="string" default="0,255,0">

@@ -532,7 +532,7 @@ paths:
                   example: https://example.com/dance.mp4
                 background_mode:
                   type: string
-                  enum: [original, inpaint, solid, transparent]
+                  enum: [original, solid, transparent]
                   default: original
                   description: "Background handling for the scene: original (keep video background, default), inpaint (AI fill), solid (single color), transparent (alpha mask)"
                 model:
@@ -763,9 +763,9 @@ paths:
                   description: Avatar model. V3_Preview uses a different rendering model with a dedicated GPU pool. Scenes preprocessed on one model cannot be rendered on the other.
                 background_mode:
                   type: string
-                  enum: [original, inpaint, solid, transparent]
+                  enum: [original, solid, transparent]
                   default: original
-                  description: "Background handling: original (keep video background, default), inpaint (AI fill), solid (single color), transparent (alpha mask for compositing)"
+                  description: "Background handling: original (default, person removed via AI inpainting), solid (single color), transparent (alpha mask for compositing)"
                 bg_color:
                   type: string
                   description: 'RGB string for solid background color, e.g., "0,255,0". Only used when background_mode is solid.'
