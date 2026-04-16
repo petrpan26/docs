@@ -9,8 +9,8 @@ All errors return JSON with a structured `detail` field containing an error code
 {
   "detail": {
     "error_code": "CS-UORC01-002",
-    "message": "Request failed validation",
-    "action": "Check your request parameters"
+    "error": "invalid_request",
+    "message": "Request failed validation"
   }
 }
 ```
@@ -131,9 +131,8 @@ When contacting support, always include the `error_code` from the response. Emai
         error = response.json().get("detail", {})
         code = error.get("error_code", "unknown")
         message = error.get("message", response.text)
-        action = error.get("action", "")
-        print(f"Error {code}: {message}")
-        print(f"Fix: {action}")
+        category = error.get("error", "")
+        print(f"Error {code} ({category}): {message}")
         # Forward to support: support@viggle.ai with the error_code
     ```
   </Accordion>

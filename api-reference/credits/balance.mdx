@@ -22,7 +22,7 @@ response = requests.get(url, headers=headers)
 response.raise_for_status()
 result = response.json()
 
-    print(f"Credit balance: {result['data']['balance']}")
+print(f"Credit balance: {result['credits_available']}")
 ```
 
 ```javascript JavaScript
@@ -35,7 +35,7 @@ const response = await fetch("https://apis.viggle.ai/api/credits", {
 const result = await response.json();
 
 if (!response.ok) throw new Error(`HTTP ${response.status}`);
-console.log(`Credit balance: ${result.balance}`);
+console.log(`Credit balance: ${result.credits_available}`);
 ```
 
 ```bash cURL
