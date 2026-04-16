@@ -457,6 +457,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+  /api/characters:
     get:
       summary: List Characters
       description: List all characters for the authenticated user, ordered by most recent first.
@@ -687,6 +688,31 @@ paths:
                 $ref: '#/components/schemas/Error'
         '404':
           description: Template not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/scenes:
+    get:
+      summary: List Scenes
+      description: List all scenes for the authenticated user, ordered by most recent first.
+      operationId: listScenes
+      tags:
+        - Scenes
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of scenes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SceneListItem'
+        '401':
+          description: Unauthorized
           content:
             application/json:
               schema:
