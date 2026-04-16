@@ -24,13 +24,10 @@ headers = {
 }
 
 response = requests.get(url, headers=headers)
+response.raise_for_status()
 result = response.json()
-
-if result.get("error_code"):
-    print(f"Error: {result['error_code']} - {result.get('error_message')}")
-else:
-    print(f"Name: {result['name']}")
-    print(f"Status: {result['status']}")
+print(f"Name: {result['name']}")
+print(f"Status: {result['status']}")
 ```
 
 ```javascript JavaScript
@@ -42,14 +39,10 @@ const response = await fetch(`https://apis.viggle.ai/api/characters/${characterI
   },
 });
 
+if (!response.ok) throw new Error(`HTTP ${response.status}`);
 const result = await response.json();
-
-if (result.error_code) {
-  console.error(`Error: ${result.error_code} - ${result.error_message}`);
-} else {
-  console.log(`Name: ${result.name}`);
-  console.log(`Status: ${result.status}`);
-}
+console.log(`Name: ${result.name}`);
+console.log(`Status: ${result.status}`);
 ```
 
 ```bash cURL
