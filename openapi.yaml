@@ -34,8 +34,15 @@ components:
           type: string
           nullable: true
           example: char_550e8400e29b
+        error:
+          type: string
+          nullable: true
         error_message:
           type: string
+          nullable: true
+        thumbnail_url:
+          type: string
+          format: uri
           nullable: true
         credits_used:
           type: number
@@ -231,6 +238,10 @@ components:
           format: uri
           nullable: true
           description: CDN URL for the alpha/mask video (transparent mode only). White = character, black = background. Use with cdn_url for compositing.
+        error:
+          type: string
+          nullable: true
+          description: Short error label when status is failed
         error_code:
           type: string
           nullable: true
