@@ -110,39 +110,9 @@ https://docs.viggle.ai/llms-full.txt
   </Tab>
 </Tabs>
 
-## Model selection
+## Model
 
-Two avatar models are available:
-
-| Model | Description |
-|-------|-------------|
-| `V4_Preview` | Default model |
-| `V3_Preview` | Alternative avatar model with a dedicated GPU pool |
-
-**On-demand renders:** pass `model` on `POST /api/render`:
-
-```bash
-curl -X POST "https://apis.viggle.ai/api/render" \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -F "ref_image=@character.png" -F "driving_video=@dance.mp4" \
-  -F "model=V3_Preview"
-```
-
-**Preprocessed renders:** pass `model` when creating the scene, not at render time. The model is baked into the scene metadata and automatically used for all renders with that scene:
-
-```bash
-# Preprocess scene with V3
-curl -X POST "https://apis.viggle.ai/api/scenes/preprocess" \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -F "video=@dance.mp4" -F "name=V3 Dance" -F "model=V3_Preview"
-
-# Render — model is auto-detected from the scene
-curl -X POST "https://apis.viggle.ai/api/render" \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -d "character_id=CHAR_ID" -d "scene_id=SCENE_ID"
-```
-
-<Warning>A scene preprocessed on V3 cannot be rendered with V4 (and vice versa). The API returns an error if the models don't match.</Warning>
+All renders use the `V4_Preview` model by default. No `model` parameter is required.
 
 ## Quick start
 

@@ -8,18 +8,7 @@ Pass optional form fields when creating a render job via `POST /api/render`. All
 ## Available options
 
 <ParamField body="model" type="string" default="V4_Preview">
-  Avatar model for rendering. **Only applies to on-demand renders** (when uploading `ref_image` + `driving_video` directly).
-
-  | Value | Description |
-  |-------|-------------|
-  | `V4_Preview` | Default model (default) |
-  | `V3_Preview` | Alternative avatar model with a dedicated GPU pool |
-
-  <Warning>
-    **Preprocessed renders:** When using `character_id` + `scene_id`, the model is automatically determined by the scene's preprocessing model. Do not pass `model` — it will be ignored or rejected if it conflicts with the scene.
-
-    To use V3 with preprocessed assets, pass `model=V3_Preview` when creating the scene via `POST /api/scenes/preprocess`. All renders using that scene will automatically use V3.
-  </Warning>
+  Avatar model for rendering. Default is `V4_Preview`.
 </ParamField>
 
 <ParamField body="background_mode" type="string" default="original">
@@ -34,8 +23,8 @@ Pass optional form fields when creating a render job via `POST /api/render`. All
   <Note>`inpaint` is accepted as an alias for `original` for backward compatibility.</Note>
 </ParamField>
 
-<ParamField body="bg_color" type="string" default="0,255,0">
-  RGB string for solid background. Only used when `background_mode` is `solid`. Format: `"R,G,B"` (0-255, not hex).
+<ParamField body="bg_color" type="string" default="255,255,255">
+  RGB color for solid background. Only valid when `background_mode=solid` (rejected otherwise). Format: `"R,G,B"` (0-255). Examples: `"255,255,255"` (white), `"0,0,0"` (black), `"0,255,0"` (green screen).
 </ParamField>
 
 <ParamField body="fast" type="boolean" default="false">
