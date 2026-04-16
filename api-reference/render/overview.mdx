@@ -13,21 +13,17 @@ Jobs progress through the following statuses:
 ```mermaid
 graph LR
     A[queued] --> B[processing]
-    B --> C[rendering]
-    C --> D[merging]
-    D --> E[complete]
-    C --> F[failed]
-    B --> F
+    B --> C[complete]
+    B --> D[failed]
 ```
 
 | Status | Description |
 |--------|-------------|
 | `queued` | Job is waiting in the queue |
-| `processing` | Job is being prepared |
-| `rendering` | Video frames are being generated |
-| `merging` | Final video is being assembled |
+| `processing` | Pipeline is running (check `progress_pct` and `checkpoint` for stage) |
 | `complete` | Video is ready -- use `cdn_url` to download |
 | `failed` | Job failed (check `error_code` and `error_message` fields) |
+| `cancelled` | Job was cancelled via `DELETE /api/render/{job_id}` |
 
 ## Polling Example
 

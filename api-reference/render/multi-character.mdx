@@ -78,7 +78,7 @@ while True:
     if status["status"] == "complete":
         break
     elif status["status"] == "failed":
-        raise Exception(f"Error {status.get('error_code')}: {status.get('error')}")
+        raise Exception(f"Error {status.get('error_code')}: {status.get('error_message')}")
     time.sleep(5)
 
 # 3. Download (auth required)
@@ -130,7 +130,7 @@ while (true) {
   const status = await fetch(`${BASE}/api/render/${jobId}`).then(r => r.json());
   if (status.status === "complete") break;
   if (status.status === "failed") {
-    throw new Error(`Error ${status.error_code}: ${status.error}`);
+    throw new Error(`Error ${status.error_code}: ${status.error_message}`);
   }
   await new Promise(r => setTimeout(r, 5000));
 }
@@ -162,7 +162,7 @@ while true; do
 
   if [ "$STATE" = "complete" ]; then break; fi
   if [ "$STATE" = "failed" ]; then
-    echo "Error: $(echo "$STATUS" | jq -r '.error_code'): $(echo "$STATUS" | jq -r '.error')"
+    echo "Error: $(echo "$STATUS" | jq -r '.error_code'): $(echo "$STATUS" | jq -r '.error_message')"
     exit 1
   fi
   sleep 5
