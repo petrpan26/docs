@@ -63,12 +63,21 @@ components:
         character_id:
           type: string
           example: 550e8400-e29b-41d4-a716-446655440000
+        id:
+          type: string
+          example: 550e8400-e29b-41d4-a716-446655440000
         job_id:
           type: string
           example: char_550e8400e29b
+        name:
+          type: string
+          example: My Character
         status:
           type: string
-          example: pending
+          example: queued
+        credits_reserved:
+          type: number
+          example: 1.0
         enqueued_at:
           type: string
           format: date-time
@@ -150,12 +159,24 @@ components:
         scene_id:
           type: string
           example: 660e8400-e29b-41d4-a716-446655440000
+        id:
+          type: string
+          example: 660e8400-e29b-41d4-a716-446655440000
         job_id:
           type: string
           example: scene_660e8400e29b
+        name:
+          type: string
+          example: Dance Sequence
         status:
           type: string
-          example: pending
+          example: queued
+        credits_reserved:
+          type: number
+          example: 0
+        duration_seconds:
+          type: number
+          nullable: true
         enqueued_at:
           type: string
           format: date-time
@@ -250,6 +271,22 @@ components:
           type: string
           nullable: true
           description: Human-readable error description when status is failed
+        progress:
+          type: object
+          nullable: true
+          description: v1 compat progress object
+          properties:
+            completed_chunks:
+              type: integer
+            total_chunks:
+              type: integer
+            percent:
+              type: number
+        download_url:
+          type: string
+          format: uri
+          nullable: true
+          description: Mirrors cdn_url when complete
         chunks:
           type: array
           items:
@@ -282,6 +319,14 @@ components:
         enqueued_at:
           type: string
           format: date-time
+        poll_url:
+          type: string
+          description: URL to poll for job status
+          example: /api/render/job_abc123xyz
+        status_url:
+          type: string
+          description: URL to get job status
+          example: /api/render/job_abc123xyz
 
     RenderDeleted:
       type: object
