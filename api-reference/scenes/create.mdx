@@ -7,7 +7,20 @@ description: 'Upload a driving video to create a reusable scene'
 
 Upload a driving video to create a reusable scene. The scene extracts motion data that can be applied to characters. **Scene creation is free -- credits are only consumed when you render.**
 
-You can optionally pass `background_mode` to set the default background handling for renders using this scene.
+You can optionally pass `background_mode` and `model` to configure the scene at creation time.
+
+<Warning>
+  **Model binding:** Each scene is locked to the model specified at creation (default `V4_Preview`). Attempting to render a scene with a different model returns error `CS-UORC01-013 scene_model_mismatch`. Create separate scenes for each model if needed.
+</Warning>
+
+### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `video` | file | required | Driving video (MP4). Min 0.5s duration, min 64x64 resolution. |
+| `name` | string | required | Display name for the scene |
+| `background_mode` | string | `original` | `original`, `solid`, or `transparent` |
+| `model` | string | `V4_Preview` | Model for preprocessing: `V4_Preview` or `V3_Preview`. Scene is permanently bound to this model. |
 
 ## Example
 

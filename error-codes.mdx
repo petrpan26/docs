@@ -74,6 +74,7 @@ When contacting support, always include the `error_code` from the response. Emai
 | `CS-UORC01-009` | Worker stopped responding before the job completed | Retry the job |
 | `CS-UORC01-010` | Fast mode sub-job failed | Retry the job, or use normal mode instead of fast mode |
 | `CS-UORC01-011` | Fast mode merge failed | Retry the job |
+| `CS-UORC01-013` | Scene model mismatch — scene was preprocessed on a different model than requested | Create a new scene with the correct `model` parameter, or render without specifying `model` |
 | `CS-ENEC-001` | Could not access the video | Retry the job |
 | `CS-ENEC-004` | No humans detected in some frames | Ensure the person is visible throughout the video |
 | `CS-RNRD-003` | Processing resources exceeded | Try a lower resolution video |
