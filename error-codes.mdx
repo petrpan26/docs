@@ -56,15 +56,16 @@ When contacting support, always include the `error_code` from the response. Emai
 | `CS-ORIV-008` | Character not found | Check the `character_id` exists |
 | `CS-ORIV-009` | Scene not found | Check the `scene_id` exists |
 | `CS-ORIV-010` | Scene preprocessing not complete | Wait for scene status to be `ready` before rendering |
-| `CS-ORIV-011` | Invalid background mode | Use `original`, `solid`, or `transparent` |
+| `CS-ORIV-011` | Invalid background mode | Use `original`, `solid`, or `transparent` (`inpaint` is accepted as alias for `original`) |
 | `CS-ORIV-012` | Invalid character_mapping JSON | Provide valid JSON for multi-character mapping |
+| `CS-ORVV-004` | Video dimensions must be even | Re-encode with even width/height (e.g. 1920x1080) |
 
 ### Job status (404 / 410)
 
 | Code | Message | Action |
 |------|---------|--------|
 | `CS-UORC01-003` | Resource not found | Check the job ID is correct |
-| `CS-ORJC-003` | Result has expired | Submit a new job -- results expire after 24 hours |
+| `CS-ORJC-003` | Result has expired | Submit a new job -- results expire after 1 hour |
 | `CS-UORC01-004` | Internal server error | Retry the job. If persistent, contact support with the error code. |
 
 ### Processing errors (500)
