@@ -1,36 +1,32 @@
 ---
-title: 'Render Options'
-description: 'Configure video generation settings'
+title: "Render Options"
+description: "Configure video generation settings"
 ---
 
 Pass optional form fields when creating a render job via `POST /api/render`. All options have sensible defaults.
 
 ## Available options
 
-<ParamField body="model" type="string" default="V4_Preview">
+<ParamField body="model" default="V4_Preview" type="string">
   Avatar model. `V4_Preview` (default) or `V3_Preview` (legacy).
 </ParamField>
 
-<ParamField body="background_mode" type="string" default="original">
+<ParamField body="background_mode" default="original" type="string">
   Background handling mode.
 
   | Value | Description |
-  |-------|-------------|
+  | --- | --- |
   | `original` | Remove the person and AI-fill the background (default) |
   | `solid` | Replace with solid color (use with `bg_color`) |
   | `transparent` | Separate mask video for compositing (returns `mask_cdn_url` alongside `cdn_url`) |
 
-  <Note>`inpaint` is accepted as an alias for `original` for backward compatibility.</Note>
+  <Note>
+    `inpaint` is accepted as an alias for `original` for backward compatibility.
+  </Note>
 </ParamField>
 
-<ParamField body="bg_color" type="string" default="255,255,255">
-  RGB color for solid background. Only valid when `background_mode=solid` (rejected otherwise). Format: `"R,G,B"` (0-255). Examples: `"255,255,255"` (white), `"0,0,0"` (black), `"0,255,0"` (green screen).
-</ParamField>
-
-<ParamField body="fast" type="boolean" default="false">
-  Enable fast mode for 2x rendering speed at 2x credit cost. Requires a `driving_video` upload or a `scene_id`.
-
-  <Warning>Fast mode requires available capacity. Returns `400` with `CS-UORC01-001` if unavailable -- retry with `fast=false` or wait.</Warning>
+<ParamField body="bg_color" default="255,255,255" type="string">
+  RGB color for solid background. Only valid when `background_mode=solid` (rejected otherwise). Format: `"R,G,B"` (0-255). Examples: `"255,255,255"` (white), `"0,0,0"` (black), `"0,255,0"` (green scree
 </ParamField>
 
 ## Examples
@@ -66,7 +62,7 @@ Pass optional form fields when creating a render job via `POST /api/render`. All
     ```
   </Tab>
   <Tab title="Transparent" icon="scissors">
-    Generates main video + mask video for compositing.
+    Generates main video \+ mask video for compositing.
 
     ```bash
     curl -X POST "https://apis.viggle.ai/api/render" \
@@ -80,10 +76,10 @@ Pass optional form fields when creating a render job via `POST /api/render`. All
 ## Background mode comparison
 
 | Mode | Use Case | Output |
-|------|----------|--------|
+| --- | --- | --- |
 | `original` | General use, keep scene context | Original background preserved |
 | `solid` | Green screen, compositing | Solid color background |
-| `transparent` | Professional compositing | Black bg video + separate mask video |
+| `transparent` | Professional compositing | Black bg video \+ separate mask video |
 
 ## Best practices
 
@@ -91,10 +87,12 @@ Pass optional form fields when creating a render job via `POST /api/render`. All
   <Accordion title="Background selection">
     Use **original** when you want scene context. Use **solid** or **transparent** when compositing in video editors.
   </Accordion>
+
   <Accordion title="Transparent mode and mask">
     Generates two outputs: main video (character on black) and mask video (white = character). Use both in your editor. See [Compositing Guide](/guides/compositing).
   </Accordion>
+
   <Accordion title="Performance optimization">
-    Enable **fast** mode for 2x rendering speed. Costs 2x credits. Requires a driving_video upload or scene_id.
+    Enable **fast** mode for 2x rendering speed. Costs 2x credits. Requires a driving\_video upload or scene\_id.
   </Accordion>
 </AccordionGroup>
