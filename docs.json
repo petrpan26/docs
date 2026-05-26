@@ -1,0 +1,171 @@
+{
+  "theme": "mint",
+  "name": "Viggle API",
+  "colors": {
+    "primary": "#006B24",
+    "light": "#00FF41",
+    "dark": "#00FF41"
+  },
+  "favicon": "/logo/viggle-logo.png",
+  "logo": {
+    "light": "/logo/viggle-logo.png",
+    "dark": "/logo/viggle-logo-dark.png"
+  },
+  "api": {
+    "openapi": "openapi.yaml",
+    "mdx": {
+      "server": "https://apis.viggle.ai",
+      "auth": {
+        "method": "bearer",
+        "name": null
+      }
+    }
+  },
+  "background": {
+    "decoration": null,
+    "color": {
+      "light": "#eeeee8",
+      "dark": "#0e0e10"
+    }
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "Dashboard",
+        "href": "https://portal.viggle.ai/dashboard"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Get API Key",
+      "href": "https://portal.viggle.ai/api-keys"
+    }
+  },
+  "footer": {
+    "socials": {
+      "twitter": "https://twitter.com/ViggleAI",
+      "discord": "https://discord.com/invite/viggle",
+      "instagram": "https://www.instagram.com/viggle_ai",
+      "youtube": "https://www.youtube.com/@ViggleAI",
+      "linkedin": "https://www.linkedin.com/company/viggle"
+    }
+  },
+  "redirects": [
+    {
+      "source": "/errors",
+      "destination": "/error-codes",
+      "permanent": true
+    },
+    {
+      "source": "/guides/live-render",
+      "destination": "/guides/on-demand",
+      "permanent": true
+    },
+    {
+      "source": "/guides/fmp4-format",
+      "destination": "/guides/on-demand",
+      "permanent": true
+    },
+    {
+      "source": "/guides/batch-processing",
+      "destination": "/guides/on-demand",
+      "permanent": true
+    },
+    {
+      "source": "/api-reference/render/poll",
+      "destination": "/api-reference/render/status",
+      "permanent": true
+    },
+    {
+      "source": "/api-reference/render/download",
+      "destination": "/api-reference/render/status",
+      "permanent": true
+    }
+  ],
+  "navigation": {
+    "global": {
+      "anchors": [
+        {
+          "anchor": "Community",
+          "icon": "https://cdn.simpleicons.org/discord/white",
+          "href": "https://discord.com/invite/viggle"
+        }
+      ]
+    },
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "authentication",
+              "pricing"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/on-demand",
+              "guides/quickstart",
+              "guides/import-templates"
+            ]
+          },
+          {
+            "group": "Advanced",
+            "pages": [
+              "guides/compositing"
+            ]
+          },
+          {
+            "group": "Reference",
+            "pages": [
+              "render-options",
+              "error-codes"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Characters",
+            "pages": [
+              "api-reference/characters/create",
+              "api-reference/characters/list",
+              "api-reference/characters/get",
+              "api-reference/characters/delete"
+            ]
+          },
+          {
+            "group": "Scenes",
+            "pages": [
+              "api-reference/scenes/create",
+              "api-reference/scenes/list",
+              "api-reference/scenes/get",
+              "api-reference/scenes/delete",
+              "api-reference/scenes/import"
+            ]
+          },
+          {
+            "group": "Render",
+            "pages": [
+              "api-reference/render/overview",
+              "api-reference/render/create",
+              "api-reference/render/status",
+              "api-reference/render/cancel"
+            ]
+          },
+          {
+            "group": "Credits",
+            "pages": [
+              "api-reference/credits/balance"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
